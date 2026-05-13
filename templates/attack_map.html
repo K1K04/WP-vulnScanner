@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/logo.png">
+<link rel="icon" type="image/png" href="/static/logo.png">
+<link rel="apple-touch-icon" href="/static/logo_web_512.png">
+<title>Attack Surface Map — WP VulnScanner</title>
+<script src="/static/vendor/d3.min.js?v=20260427c"></script>
+<link rel="stylesheet" href="/static/pro_theme.css?v=20260427c">
+<link rel="stylesheet" href="/static/attack_map.css?v=20260427c">
+<script>try{if(localStorage.getItem('wpvs_theme')==='light')document.documentElement.classList.add('light');}catch(e){}</script>
+</head>
+<body>
+
+<nav class="topnav attack-map-nav" id="globalTopNav">
+  <a class="topnav-brand" href="/">
+    <img src="/static/logo.png" class="topnav-logo-img" alt="WP VulnScanner">
+    <div><div class="topnav-name">WP VulnScanner</div></div>
+  </a>
+  <div class="topnav-links">
+    <a class="topnav-link" href="/">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="4"/></svg>
+      Escaner
+    </a>
+    <a class="topnav-link" href="/dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a class="topnav-link" href="/compare">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="9" height="18" rx="1"/><rect x="13" y="3" width="9" height="18" rx="1"/></svg>
+      Comparar
+    </a>
+    <a class="topnav-link" href="/vulns-db">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v5c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 10v5c0 1.7 4 3 9 3s9-1.3 9-3v-5"/></svg>
+      CVE DB
+    </a>
+    <a class="topnav-link" href="/schedules">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
+      Programados
+    </a>
+    <a class="topnav-link" href="/settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Ajustes
+    </a>
+    <button class="theme-toggle" onclick="(function(){var l=document.documentElement.classList.toggle('light');try{localStorage.setItem('wpvs_theme',l?'light':'dark')}catch(e){}})()" title="Cambiar tema">
+      <svg class="ico-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg class="ico-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+</nav>
+
+<div id="loadingOverlay">
+  <div class="lo-ring"></div>
+  <div class="lo-text">Cargando superficie de ataque…</div>
+</div>
+
+
+<div class="topbar">
+  <div class="tb-logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2L3 6.5v5.5c0 4.8 3.8 9.3 9 10.5 5.2-1.2 9-5.7 9-10.5V6.5L12 2z"/>
+      <line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="15.5" r=".75" fill="currentColor" stroke="none"/>
+    </svg>
+    Attack Map
+    <div class="tb-logo-dot"></div>
+  </div>
+
+  <div class="tb-divider"></div>
+  <div class="tb-url" id="tbUrl">Cargando…</div>
+  <div class="tb-divider"></div>
+
+  <div class="tb-stats" id="tbStats">
+    <div class="tb-stat"><div class="tb-stat-val" style="color:var(--text3)">—</div><div class="tb-stat-lbl">Nodos</div></div>
+    <div class="tb-stat"><div class="tb-stat-val" style="color:var(--red)">—</div><div class="tb-stat-lbl">Vulns</div></div>
+    <div class="tb-stat"><div class="tb-stat-val" style="color:var(--teal)">—</div><div class="tb-stat-lbl">Servicios</div></div>
+    <div class="tb-stat"><div class="tb-stat-val" style="color:var(--amber)">—</div><div class="tb-stat-lbl">Riesgo</div></div>
+  </div>
+
+  <div class="tb-divider" id="tbBackDivider"></div>
+  <a href="/" onclick="return goBackFromMap(event);" class="tb-back" id="mapBackBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Volver
+  </a>
+</div>
+
+
+<div class="filter-bar">
+  <span class="filter-lbl">Vista</span>
+  <button class="fbtn active"       onclick="setFilter('all',this)">Todos</button>
+  <button class="fbtn f-crit"       onclick="setFilter('critical',this)">Crítico</button>
+  <button class="fbtn f-high"       onclick="setFilter('high',this)">Alto</button>
+  <button class="fbtn f-med"        onclick="setFilter('medium',this)">Medio</button>
+  <button class="fbtn f-plug"       onclick="setFilter('plugins',this)">Plugins</button>
+  <button class="fbtn f-file"       onclick="setFilter('exposed',this)">Archivos</button>
+  <button class="fbtn f-usr"        onclick="setFilter('users',this)">Usuarios</button>
+  <button class="fbtn f-svc"        onclick="setFilter('services',this)">Servicios</button>
+</div>
+
+
+<div id="graph-container"></div>
+
+
+<div class="tooltip" id="tooltip"></div>
+
+
+<div class="legend">
+  <div class="legend-title">Leyenda</div>
+  <div class="legend-item"><div class="legend-ring" style="border-color:var(--cyan)"></div>Objetivo</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--teal)"></div>IP / infraestructura</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Servicio expuesto</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Vuln crítica</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>Vuln alta</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Vuln media / desact.</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Plugin / Tema</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>Archivo expuesto</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Usuario / WP Core</div>
+</div>
+
+
+<div class="controls">
+  <button class="ctrl-btn" onclick="zoomIn()" title="Zoom +">+</button>
+  <button class="ctrl-btn" onclick="zoomOut()" title="Zoom -">−</button>
+  <button class="ctrl-btn" onclick="resetZoom()" title="Reset">⊙</button>
+  <button class="ctrl-btn" onclick="togglePanel()" title="Panel">▶</button>
+</div>
+
+
+<div class="side-panel" id="sidePanel">
+  <div class="sp-header">
+    <div class="sp-title" id="spTitle">Detalles</div>
+    <button class="sp-close" onclick="togglePanel()">✕</button>
+  </div>
+  <div class="sp-body" id="spBody"></div>
+</div>
+
+<script>
+const JOB_ID = '{{ job_id }}';
+const MAP_EMBEDDED = (() => {
+  try {
+    return window.parent && window.parent !== window;
+  } catch (e) {
+    return false;
+  }
+})();
+
+function goBackFromMap(event) {
+  if (event) event.preventDefault();
+  if (MAP_EMBEDDED) {
+    try { window.parent.postMessage('closeAttackMap', '*'); } catch (e) {}
+    return false;
+  }
+  if (history.length > 1) {
+    history.back();
+  } else {
+    window.location.href = '/';
+  }
+  return false;
+}
+
+function setupMapBackButton() {
+  if (!MAP_EMBEDDED) return;
+  document.body.classList.add('map-embedded');
+  const globalTopNav = document.getElementById('globalTopNav');
+  const backBtn = document.getElementById('mapBackBtn');
+  const backDiv = document.getElementById('tbBackDivider');
+  if (globalTopNav) globalTopNav.style.display = 'none';
+  if (backBtn) backBtn.style.display = 'none';
+  if (backDiv) backDiv.style.display = 'none';
+}
+
+setupMapBackButton();
+
+{% if api_key %}try { localStorage.setItem('wpvs_api_key', {{ api_key | tojson }}); } catch(e) {}{% endif %}
+const _AM_API_KEY = (function(){ try { return localStorage.getItem('wpvs_api_key')||''; } catch(e){ return ''; } })();
+function apiFetch(url, opts = {}) {
+  const h = Object.assign({}, opts.headers || {});
+  if (_AM_API_KEY) h['X-API-Key'] = _AM_API_KEY;
+  return fetch(url, Object.assign({}, opts, { headers: h }));
+}
+
+const SEV_C  = { critical: '#f13d52', high: '#f97316', medium: '#f5a623', low: '#22d67a', info: '#38bdf8' };
+const SEV_R  = { critical: 18, high: 15, medium: 13, low: 10, info: 9 };
+const SVC_RISK_HIGH = new Set([22, 23, 3306, 3389, 5432, 6379, 9200, 27017]);
+const SVC_RISK_MED  = new Set([21, 25, 445, 8080, 8443, 8888]);
+
+function serviceRiskByPort(port) {
+  if (SVC_RISK_HIGH.has(port)) return 'high';
+  if (SVC_RISK_MED.has(port)) return 'medium';
+  return 'low';
+}
+
+function serviceColorByPort(port) {
+  const risk = serviceRiskByPort(port);
+  if (risk === 'high') return '#f13d52';
+  if (risk === 'medium') return '#f97316';
+  return '#14c2b3';
+}
+
+function getReconServiceEntries(recon) {
+  const entries = [];
+  const seen = new Set();
+
+  const nmapPorts = Array.isArray(recon?.nmap?.ports) ? recon.nmap.ports : [];
+  nmapPorts.forEach((p) => {
+    const port = Number(p?.port);
+    if (!Number.isFinite(port)) return;
+    const proto = String(p?.proto || 'tcp').toLowerCase();
+    const key = `${port}/${proto}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    entries.push({
+      port,
+      proto,
+      service: p?.service || 'unknown',
+      version: p?.version || '',
+      state: p?.state || 'open',
+      source: 'nmap',
+      risk: serviceRiskByPort(port),
+    });
+  });
+
+  const shPorts = Array.isArray(recon?.shodan?.ports) ? recon.shodan.ports : [];
+  shPorts.forEach((rawPort) => {
+    const port = Number(rawPort);
+    if (!Number.isFinite(port)) return;
+    const key = `${port}/tcp`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    entries.push({
+      port,
+      proto: 'tcp',
+      service: 'unknown',
+      version: '',
+      state: 'open',
+      source: 'shodan',
+      risk: serviceRiskByPort(port),
+    });
+  });
+
+  return entries.sort((a, b) => a.port - b.port);
+}
+
+let simulation, svg, zoomBehavior, allNodes, allLinks;
+let currentFilter = 'all';
+async function loadData() {
+  const loText = document.querySelector('.lo-text');
+  try {
+    const res  = await apiFetch(`/scan/${JOB_ID}/result`);
+    const json = await res.json();
+    let r = null;
+    if (json.status === 'done' && json.result) {
+      r = json.result;
+    } else if (json.result) {
+      r = json.result;
+    } else if (json.target_url) {
+      r = json;  // direct result object (from in-memory job)
+    } else if (json.status === 'running') {
+      if (loText) loText.textContent = 'Escaneo en curso... recarga en unos segundos';
+      return;
+    } else if (json.error) {
+      if (loText) loText.textContent = 'Error: ' + json.error;
+      return;
+    } else {
+      const container = document.getElementById('graph-container');
+      if (container) {
+        container.classList.add('no-data');
+        container.innerHTML = `
+          <div class="map-empty-grid"></div>
+          <div class="map-empty-state">
+            <div class="map-empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M2 12h3M19 12h3M12 2v3M12 19v3"/>
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M6.34 6.34l1.41 1.41M16.25 16.25l1.41 1.41M6.34 17.66l1.41-1.41M16.25 7.75l1.41-1.41"/>
+              </svg>
+            </div>
+            <div class="map-empty-title">Sin datos de ataque</div>
+            <div class="map-empty-sub">Ejecuta un escaneo completo para visualizar el mapa de superficie de ataque y relaciones entre vulnerabilidades.</div>
+          </div>`;
+      }
+      return;
+    }
+
+    if (!r || !r.target_url) {
+      const container = document.getElementById('graph-container');
+      if (container) {
+        container.classList.add('no-data');
+        container.innerHTML = `
+          <div class="map-empty-grid"></div>
+          <div class="map-empty-state">
+            <div class="map-empty-icon" style="border-color:rgba(255,184,48,.3);background:radial-gradient(circle,rgba(255,184,48,.12) 0%,transparent 70%)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <div class="map-empty-title" style="color:var(--amber)">Datos incompletos</div>
+            <div class="map-empty-sub">El escaneo no generó suficiente información para construir el mapa. Intenta ejecutar un escaneo completo.</div>
+          </div>`;
+      }
+      return;
+    }
+    buildGraph(r);
+  } catch(e) {
+    if (loText) loText.textContent = 'Error cargando datos: ' + e.message;
+    console.error('Attack map load error:', e);
+  }
+}
+function buildGraph(r) {
+  const nodes = [];
+  const links = [];
+  const recon = r.recon || {};
+  const services = getReconServiceEntries(recon);
+  const hasIpNode = Boolean(recon.target_ip);
+  nodes.push({
+    id: 'target', type: 'target',
+    label: (r.target_url||'').replace(/https?:\/\//,'').split('/')[0],
+    risk: r.risk_score, color: r.risk_color || '#38bdf8',
+    radius: 28, data: r, fixed: true,
+  });
+  if (hasIpNode) {
+    nodes.push({
+      id: 'infra-ip',
+      type: 'infra',
+      label: `IP ${recon.target_ip}`,
+      color: '#14c2b3',
+      radius: 14,
+      data: {
+        ip: recon.target_ip,
+        rdns: recon.rdns || '',
+        geoip: recon.geoip || {},
+        asn: recon.asn || {},
+        shodan: recon.shodan || {},
+      },
+    });
+    links.push({ source: 'target', target: 'infra-ip', color: '#14c2b366', width: 1.8 });
+  }
+  if (services.length > 0) {
+    const anchor = hasIpNode ? 'infra-ip' : 'target';
+    nodes.push({
+      id: 'svc-cluster',
+      type: 'service',
+      subtype: 'cluster',
+      label: `Servicios ${services.length}`,
+      color: '#f5a623',
+      radius: 13,
+      data: { count: services.length },
+    });
+    links.push({ source: anchor, target: 'svc-cluster', color: '#f5a62377', width: 1.8 });
+
+    services.slice(0, 12).forEach((p, i) => {
+      const nid = `svc-port-${p.port}-${i}`;
+      const c = serviceColorByPort(p.port);
+      nodes.push({
+        id: nid,
+        type: 'service',
+        subtype: 'port',
+        label: `${p.port}/${p.proto} ${p.service || ''}`.trim(),
+        color: c,
+        radius: 10,
+        data: p,
+      });
+      links.push({ source: 'svc-cluster', target: nid, color: c + '66', width: 1.2 });
+    });
+  }
+  if (r.wp_version) {
+    const c = r.wp_outdated ? '#f13d52' : '#22d67a';
+    nodes.push({ id: 'wp-core', type: 'core', label: `WP ${r.wp_version}`, color: c, radius: 18, data: { version: r.wp_version, outdated: r.wp_outdated } });
+    links.push({ source: 'target', target: 'wp-core', color: r.wp_outdated ? '#f13d52' : '#1c2235', width: r.wp_outdated ? 2 : 1 });
+  }
+  const components = (r.plugins||[]).concat(r.themes||[]);
+  components.forEach((p) => {
+    if (!p || !p.slug) return;
+    const nid = `plugin-${p.slug}`;
+    nodes.push({ id: nid, type: 'plugin', label: p.slug, color: p.is_outdated ? '#f5a623' : '#4f8ef7', radius: 13, data: p, subtype: p.type||'plugin' });
+    links.push({ source: 'target', target: nid, color: p.is_outdated ? '#f5a62366' : '#1c2235', width: p.is_outdated ? 1.5 : 0.8 });
+  });
+  (r.vulnerabilities||[]).forEach((v, i) => {
+    if (!v || !v.title) return;
+    const nid    = `vuln-${i}`;
+    const parent = v.type === 'wordpress' ? 'wp-core' : `plugin-${v.plugin_slug}`;
+    const pExists = nodes.find(n => n.id === parent);
+    nodes.push({ id: nid, type: 'vuln', label: v.cve_id || v.title.slice(0,20), color: SEV_C[v.severity]||'#475569', radius: SEV_R[v.severity]||10, data: v, severity: v.severity });
+    links.push({ source: pExists ? parent : 'target', target: nid, color: (SEV_C[v.severity]||'#475569')+'88', width: v.severity === 'critical' ? 2.5 : 1.5, dashed: !pExists });
+  });
+  (r.exposed_files||[]).slice(0, 15).forEach((f, i) => {
+    const nid = `file-${i}`;
+    nodes.push({ id: nid, type: 'file', label: (typeof f === 'object' ? f.path : f)||'', color: '#a78bfa', radius: 10, data: f });
+    links.push({ source: 'target', target: nid, color: '#a78bfa33', width: 1 });
+  });
+  (r.users||[]).forEach((u, i) => {
+    const nid = `user-${i}`;
+    nodes.push({ id: nid, type: 'user', label: u.login || u.display_name || `user${u.id}`, color: '#22d67a', radius: 11, data: u });
+    links.push({ source: 'target', target: nid, color: '#22d67a33', width: 1 });
+  });
+  if (r.xmlrpc_enabled) {
+    nodes.push({ id:'xmlrpc', type:'flag', label:'XML-RPC', color:'#f97316', radius:12, data:{} });
+    links.push({ source:'target', target:'xmlrpc', color:'#f9731666', width:2 });
+  }
+  if (r.login_exposed) {
+    nodes.push({ id:'login', type:'flag', label:'wp-login', color:'#f5a623', radius:12, data:{} });
+    links.push({ source:'target', target:'login', color:'#f5a62355', width:1.5 });
+  }
+  if ((r.waf_detected||[]).length > 0) {
+    nodes.push({ id:'waf-cluster', type:'flag', label:'🛡 WAF: ' + r.waf_detected[0], color:'#22d67a', radius:14, data:{waf_list: r.waf_detected} });
+    links.push({ source:'target', target:'waf-cluster', color:'#22d67a33', width:1.5 });
+  }
+  if ((r.malware_indicators||[]).length > 0) {
+    nodes.push({ id:'malware', type:'flag', label:`⚠ Malware (${(r.malware_indicators||[]).length})`, color:'#ff4560', radius:15, data:{indicators:r.malware_indicators||[]} });
+    links.push({ source:'target', target:'malware', color:'#ff456088', width:2.5 });
+  }
+  const kevVulns = (r.vulnerabilities||[]).filter(v => v.kev);
+  if (kevVulns.length > 0) {
+    nodes.push({ id:'kev-cluster', type:'flag', label:`🔴 KEV ×${kevVulns.length}`, color:'#ff4560', radius:16, data:{count:kevVulns.length} });
+    links.push({ source:'target', target:'kev-cluster', color:'#ff456099', width:3 });
+    kevVulns.slice(0,5).forEach((v,i) => {
+      const nid = `kev-${i}`;
+      nodes.push({ id:nid, type:'vuln', label:v.cve_id||'KEV', color:'#ff4560', radius:SEV_R[v.severity]||10, data:v, severity:v.severity });
+      links.push({ source:'kev-cluster', target:nid, color:'#ff456055', width:1.5 });
+    });
+  }
+
+  allNodes = nodes;
+  allLinks = links;
+
+  const vulns = (r.vulnerabilities||[]);
+  document.getElementById('tbUrl').textContent = r.target_url || '';
+  document.getElementById('tbStats').innerHTML = `
+    <div class="tb-stat"><div class="tb-stat-val" style="color:var(--text)">${nodes.length}</div><div class="tb-stat-lbl">Nodos</div></div>
+    <div class="tb-stat"><div class="tb-stat-val" style="color:var(--red)">${vulns.length}</div><div class="tb-stat-lbl">Vulns</div></div>
+    <div class="tb-stat"><div class="tb-stat-val" style="color:var(--teal)">${services.length}</div><div class="tb-stat-lbl">Servicios</div></div>
+    <div class="tb-stat"><div class="tb-stat-val" style="color:${r.risk_color||'var(--amber)'}">${r.risk_score}</div><div class="tb-stat-lbl">Riesgo</div></div>
+  `;
+
+  renderGraph(nodes, links);
+  populateSidePanel(r);
+  document.getElementById('loadingOverlay').style.display = 'none';
+}
+function renderGraph(nodes, links) {
+  const container = document.getElementById('graph-container');
+  const W = container.clientWidth;
+  const H = container.clientHeight;
+
+  d3.select('#graph-container svg').remove();
+
+  svg = d3.select('#graph-container')
+    .append('svg').attr('width', W).attr('height', H)
+    .style('background', 'var(--bg)');
+
+  const defs = svg.append('defs');
+  const glow = defs.append('filter').attr('id','glow').attr('x','-60%').attr('y','-60%').attr('width','220%').attr('height','220%');
+  glow.append('feGaussianBlur').attr('stdDeviation','4').attr('result','blur');
+  const merge = glow.append('feMerge');
+  merge.append('feMergeNode').attr('in','blur');
+  merge.append('feMergeNode').attr('in','SourceGraphic');
+  const pattern = defs.append('pattern').attr('id','grid').attr('width',40).attr('height',40).attr('patternUnits','userSpaceOnUse');
+  pattern.append('path').attr('d','M 40 0 L 0 0 0 40').attr('fill','none').attr('stroke','#1c2235').attr('stroke-width','0.5');
+  svg.insert('rect','g').attr('width','100%').attr('height','100%').attr('fill','url(#grid)');
+  const cols = ['#f13d52','#f97316','#f5a623','#22d67a','#38bdf8','#4f8ef7','#a78bfa','#1c2235'];
+  cols.forEach(color => {
+    const id = 'arr' + color.replace('#','');
+    defs.append('marker').attr('id',id).attr('viewBox','0 -5 10 10')
+      .attr('refX',20).attr('refY',0).attr('markerWidth',5).attr('markerHeight',5).attr('orient','auto')
+      .append('path').attr('d','M0,-5L10,0L0,5').attr('fill',color).attr('opacity',.6);
+  });
+
+  const g = svg.append('g');
+  zoomBehavior = d3.zoom().scaleExtent([0.08, 5]).on('zoom', e => g.attr('transform', e.transform));
+  svg.call(zoomBehavior);
+  svg.call(zoomBehavior.transform, d3.zoomIdentity.translate(W/2, H/2));
+
+  simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.id).distance(d => {
+      const t = d.target;
+      if (typeof t === 'object') {
+        if (t.type === 'vuln')   return 80 + (t.radius||10)*2;
+        if (t.type === 'plugin') return 120;
+        if (t.type === 'file')   return 100;
+        if (t.type === 'user')   return 90;
+      }
+      return 110;
+    }).strength(.4))
+    .force('charge', d3.forceManyBody().strength(-280))
+    .force('collision', d3.forceCollide().radius(d => (d.radius||10)+14))
+    .force('x', d3.forceX(0).strength(.05))
+    .force('y', d3.forceY(0).strength(.05))
+    .alphaDecay(.02);
+
+  nodes[0].fx = 0; nodes[0].fy = 0;
+  const link = g.append('g').selectAll('line').data(links).enter().append('line')
+    .attr('stroke', d => d.color||'#1c2235')
+    .attr('stroke-width', d => d.width||1)
+    .attr('stroke-dasharray', d => d.dashed ? '5,4' : null)
+    .attr('stroke-opacity', .7)
+    .attr('marker-end', d => {
+      const c = (d.color||'#1c2235').slice(0,7);
+      return cols.includes(c) ? `url(#arr${c.replace('#','')})` : null;
+    });
+  const node = g.append('g').selectAll('g').data(nodes).enter().append('g')
+    .style('cursor','pointer')
+    .call(d3.drag()
+      .on('start', (ev,d) => { if(!ev.active) simulation.alphaTarget(.3).restart(); d.fx=d.x;d.fy=d.y; })
+      .on('drag',  (ev,d) => { d.fx=ev.x; d.fy=ev.y; })
+      .on('end',   (ev,d) => { if(!ev.active) simulation.alphaTarget(0); if(d.type!=='target'){d.fx=null;d.fy=null;} }));
+  node.filter(d => d.type === 'target').append('circle')
+    .attr('r', d => d.radius + 10)
+    .attr('fill', 'none')
+    .attr('stroke', d => d.color)
+    .attr('stroke-width', 1)
+    .attr('stroke-opacity', .2)
+    .style('filter','url(#glow)');
+  node.append('circle')
+    .attr('r', d => d.radius)
+    .attr('fill', d => d.color + (d.type === 'target' ? '18' : '14'))
+    .attr('stroke', d => d.color)
+    .attr('stroke-width', d => d.type === 'target' ? 2 : 1.5)
+    .style('filter', d => ['target','vuln'].includes(d.type) ? 'url(#glow)' : null)
+    .on('mouseenter', showTooltip)
+    .on('mouseleave', hideTooltip)
+    .on('click', nodeClicked);
+  node.append('text')
+    .attr('text-anchor','middle').attr('dominant-baseline','central')
+    .attr('font-size', d => Math.max(7, d.radius * .55))
+    .attr('font-family','Space Mono, monospace')
+    .attr('font-weight','700')
+    .attr('fill', d => d.color)
+    .attr('pointer-events','none')
+    .text(d => {
+      if (d.type === 'target')  return d.risk || '';
+      if (d.type === 'infra')   return 'IP';
+      if (d.type === 'core')    return 'WP';
+      if (d.type === 'plugin')  return d.subtype==='theme' ? 'TH' : 'PL';
+      if (d.type === 'service') return d.subtype === 'cluster' ? 'SV' : 'P';
+      if (d.type === 'vuln')    return d.severity==='critical'?'!!':d.severity==='high'?'!':'?';
+      if (d.type === 'file')    return 'F';
+      if (d.type === 'user')    return 'U';
+      if (d.type === 'flag')    return d.label==='XML-RPC'?'RPC':'LOG';
+      return '';
+    });
+  node.append('text')
+    .attr('y', d => d.radius + 12)
+    .attr('text-anchor','middle')
+    .attr('font-size', 9)
+    .attr('font-family','Space Mono, monospace')
+    .attr('fill','#475569')
+    .attr('pointer-events','none')
+    .text(d => d.label && d.label.length > 18 ? d.label.slice(0,16)+'…' : d.label);
+
+  simulation.on('tick', () => {
+    link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y)
+        .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    node.attr('transform',d=>`translate(${d.x},${d.y})`);
+  });
+}
+function showTooltip(event, d) {
+  const tt = document.getElementById('tooltip');
+  let html = `<div class="tt-title" style="color:${d.color}">${d.label}</div>`;
+
+  if (d.type === 'target') {
+    const recon = d.data.recon || {};
+    const svc = getReconServiceEntries(recon);
+    html += `<div class="tt-row"><span class="tt-key">Riesgo:</span><span class="tt-val" style="color:${d.color}">${d.risk}/100</span></div>`;
+    html += `<div class="tt-row"><span class="tt-key">URL:</span><span class="tt-val">${(d.data.target_url||'').slice(0,40)}</span></div>`;
+    if (recon.target_ip) html += `<div class="tt-row"><span class="tt-key">IP:</span><span class="tt-val" style="color:var(--teal)">${recon.target_ip}</span></div>`;
+    if (svc.length) html += `<div class="tt-row"><span class="tt-key">Servicios:</span><span class="tt-val">${svc.length} abiertos</span></div>`;
+  } else if (d.type === 'infra') {
+    const info = d.data || {};
+    const g = info.geoip || {};
+    const asn = info.asn || {};
+    const asnMain = Array.isArray(asn.asns) && asn.asns.length ? asn.asns[0] : {};
+    html += `<div class="tt-row"><span class="tt-key">IP:</span><span class="tt-val" style="color:var(--teal)">${info.ip || '—'}</span></div>`;
+    if (info.rdns) html += `<div class="tt-row"><span class="tt-key">PTR:</span><span class="tt-val">${info.rdns}</span></div>`;
+    if (g.country || g.city) html += `<div class="tt-row"><span class="tt-key">Geo:</span><span class="tt-val">${[g.city, g.country].filter(Boolean).join(', ') || '—'}</span></div>`;
+    if (g.isp || g.org) html += `<div class="tt-row"><span class="tt-key">ISP:</span><span class="tt-val">${g.isp || g.org}</span></div>`;
+    if (asnMain.asn || g.asn) html += `<div class="tt-row"><span class="tt-key">ASN:</span><span class="tt-val">${asnMain.asn || g.asn}</span></div>`;
+  } else if (d.type === 'service') {
+    const p = d.data || {};
+    const riskText = p.risk === 'high' ? 'ALTO' : (p.risk === 'medium' ? 'MEDIO' : 'BAJO');
+    const riskColor = p.risk === 'high' ? 'var(--red)' : (p.risk === 'medium' ? 'var(--orange)' : 'var(--green)');
+    if (d.subtype === 'cluster') {
+      html += `<div class="tt-row"><span class="tt-key">Total:</span><span class="tt-val" style="color:var(--amber)">${p.count || 0} servicios</span></div>`;
+      html += `<div style="color:var(--text2);font-size:10px;margin-top:5px">Click para ver detalle de puertos en el panel lateral.</div>`;
+    } else {
+      html += `<div class="tt-row"><span class="tt-key">Puerto:</span><span class="tt-val" style="color:var(--amber)">${p.port}/${p.proto || 'tcp'}</span></div>`;
+      html += `<div class="tt-row"><span class="tt-key">Servicio:</span><span class="tt-val">${p.service || 'unknown'}</span></div>`;
+      html += `<div class="tt-row"><span class="tt-key">Estado:</span><span class="tt-val">${p.state || 'open'}</span></div>`;
+      if (p.version) html += `<div class="tt-row"><span class="tt-key">Versión:</span><span class="tt-val">${p.version}</span></div>`;
+      html += `<div class="tt-row"><span class="tt-key">Origen:</span><span class="tt-val">${p.source || 'nmap'}</span></div>`;
+      html += `<div class="tt-row"><span class="tt-key">Exposición:</span><span class="tt-val" style="color:${riskColor}">${riskText}</span></div>`;
+    }
+  } else if (d.type === 'plugin') {
+    const p = d.data;
+    html += `<div class="tt-row"><span class="tt-key">Tipo:</span><span class="tt-val">${p.type||'plugin'}</span></div>`;
+    html += `<div class="tt-row"><span class="tt-key">Versión:</span><span class="tt-val">${p.version||'?'}</span></div>`;
+    if (p.latest_version) html += `<div class="tt-row"><span class="tt-key">Última:</span><span class="tt-val" style="color:var(--green)">${p.latest_version}</span></div>`;
+    if (p.is_outdated) html += `<div style="color:var(--amber);margin-top:5px;font-size:10px">DESACTUALIZADO — actualizar</div>`;
+  } else if (d.type === 'vuln') {
+    const v = d.data;
+    html += `<div><span class="tt-badge" style="color:${d.color}">${v.severity?.toUpperCase()}</span>${v.cve_id ? `<span style="font-size:10px;color:var(--text2)">${v.cve_id}</span>` : ''}</div>`;
+    if (v.cvss_score) html += `<div class="tt-row"><span class="tt-key">CVSS:</span><span class="tt-val" style="color:${d.color}">${v.cvss_score}</span></div>`;
+    if (v.fixed_in)   html += `<div class="tt-row"><span class="tt-key">Fix:</span><span class="tt-val" style="color:var(--green)">v${v.fixed_in}</span></div>`;
+    html += `<div style="color:var(--text2);font-size:10px;margin-top:5px;line-height:1.4">${(v.title||'').slice(0,90)}</div>`;
+  } else if (d.type === 'file') {
+    const f = typeof d.data === 'object' ? d.data : {path:d.data};
+    html += `<div class="tt-row"><span class="tt-key">Ruta:</span><span class="tt-val" style="color:var(--purple)">${f.path||d.label}</span></div>`;
+    if (f.description) html += `<div style="color:var(--text2);font-size:10px;margin-top:4px">${f.description}</div>`;
+  } else if (d.type === 'user') {
+    const u = d.data;
+    html += `<div class="tt-row"><span class="tt-key">Login:</span><span class="tt-val" style="color:var(--green)">${u.login||'?'}</span></div>`;
+    html += `<div class="tt-row"><span class="tt-key">ID:</span><span class="tt-val">${u.id}</span></div>`;
+    if (u.source) html += `<div class="tt-row"><span class="tt-key">Fuente:</span><span class="tt-val">${u.source}</span></div>`;
+  }
+
+  tt.innerHTML = html;
+  tt.style.display = 'block';
+  tt.style.left = (event.clientX + 14) + 'px';
+  tt.style.top  = Math.min(event.clientY - 10, window.innerHeight - 220) + 'px';
+}
+
+function hideTooltip() { document.getElementById('tooltip').style.display='none'; }
+function nodeClicked(event, d) {
+  const panel = document.getElementById('sidePanel');
+  const body  = document.getElementById('spBody');
+  const title = document.getElementById('spTitle');
+  title.textContent = d.label;
+  title.style.color = d.color;
+  body.innerHTML = '';
+
+  if (d.type === 'vuln') {
+    const v = d.data; const c = SEV_C[v.severity]||'#475569';
+    body.innerHTML = `
+      <div><span class="sp-sev" style="color:${c}">${v.severity?.toUpperCase()}</span></div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px;line-height:1.4">${v.title||''}</div>
+      <div class="sp-section">Detalles</div>
+      <div class="sp-item"><div class="sp-item-meta">Componente</div><div class="sp-item-val">${v.plugin_slug||'WP Core'} v${v.plugin_version||'?'}</div></div>
+      ${v.cve_id ? `<div class="sp-item"><div class="sp-item-meta">CVE ID</div><div class="sp-item-val"><a href="https://nvd.nist.gov/vuln/detail/${v.cve_id}" target="_blank" style="color:var(--cyan);text-decoration:none">${v.cve_id}</a></div></div>` : ''}
+      ${v.cvss_score ? `<div class="sp-item"><div class="sp-item-meta">CVSS Score</div><div class="sp-item-val" style="color:${c}">${v.cvss_score}</div></div>` : ''}
+      ${v.fixed_in ? `<div class="sp-item"><div class="sp-item-meta">Versión que corrige</div><div class="sp-item-val" style="color:var(--green)">v${v.fixed_in}</div></div>` : ''}
+      ${v.description ? `<div class="sp-section">Descripción</div><div class="sp-hint">${v.description}</div>` : ''}`;
+  } else if (d.type === 'plugin') {
+    const p = d.data;
+    body.innerHTML = `
+      <div class="sp-section">${p.type === 'theme' ? 'Tema' : 'Plugin'}</div>
+      <div class="sp-item"><div class="sp-item-meta">Slug</div><div class="sp-item-val">${p.slug}</div></div>
+      <div class="sp-item"><div class="sp-item-meta">Versión instalada</div><div class="sp-item-val" style="color:${p.is_outdated?'var(--amber)':'var(--green)'}">${p.version||'Desconocida'}</div></div>
+      <div class="sp-item"><div class="sp-item-meta">Última versión</div><div class="sp-item-val" style="color:var(--green)">${p.latest_version||'—'}</div></div>
+      <div class="sp-item"><div class="sp-item-meta">Detectado via</div><div class="sp-item-val">${p.detected_via||'—'}</div></div>
+      <div class="sp-item"><div class="sp-item-meta">Confianza</div><div class="sp-item-val">${p.confidence||0}%</div></div>
+      ${p.is_outdated ? '<div style="margin-top:10px;color:var(--amber);font-size:10px">Desactualizado — actualizar urgentemente</div>' : ''}`;
+  } else if (d.type === 'target') {
+    const r = d.data;
+    const s = r.summary||{};
+    const recon = r.recon || {};
+    const svc = getReconServiceEntries(recon);
+    const topSvc = svc.slice(0, 6).map(p => `${p.port}/${p.proto}${p.service ? ` ${p.service}` : ''}`).join(' · ');
+    const geo = recon.geoip || {};
+    body.innerHTML = `
+      <div class="sp-section">Objetivo</div>
+      <div class="sp-item"><div class="sp-item-meta">URL</div><div class="sp-item-val" style="word-break:break-all">${r.target_url||''}</div></div>
+      <div class="sp-item"><div class="sp-item-meta">WP Version</div><div class="sp-item-val" style="color:${r.wp_outdated?'var(--amber)':'var(--green)'}">${r.wp_version||'No detectada'}</div></div>
+      <div class="sp-item"><div class="sp-item-meta">Servidor</div><div class="sp-item-val">${r.server_info||'Oculto'}</div></div>
+      <div class="sp-item"><div class="sp-item-meta">Puntuación de riesgo</div><div class="sp-item-val" style="color:${r.risk_color||'#475569'};font-size:22px;font-weight:700">${r.risk_score} / 100</div></div>
+      <div class="sp-section">Infraestructura</div>
+      <div class="sp-item"><div class="sp-item-meta">IP objetivo</div><div class="sp-item-val" style="color:var(--teal)">${recon.target_ip || 'No detectada'}</div></div>
+      <div class="sp-item"><div class="sp-item-meta">Geo / ISP</div><div class="sp-item-val">${[geo.city, geo.country, geo.isp].filter(Boolean).join(' · ') || 'No disponible'}</div></div>
+      <div class="sp-item"><div class="sp-item-meta">Servicios expuestos</div><div class="sp-item-val" style="color:var(--amber)">${svc.length || 0}</div></div>
+      <div class="sp-item"><div class="sp-item-meta">Top puertos</div><div class="sp-item-val">${topSvc || '—'}</div></div>
+      <div class="sp-section">Resumen</div>
+      <div class="sp-item"><div class="sp-item-meta">Vulnerabilidades</div><div class="sp-item-val" style="color:var(--red)">${s.vulns_found||0} (${s.critical_vulns||0} críticas, ${s.high_vulns||0} altas)</div></div>
+      <div class="sp-item"><div class="sp-item-meta">Plugins / Temas</div><div class="sp-item-val">${s.plugins_found||0} / ${s.themes_found||0}</div></div>
+      <div class="sp-item"><div class="sp-item-meta">Archivos expuestos</div><div class="sp-item-val" style="color:var(--purple)">${s.exposed_files||0}</div></div>`;
+  } else if (d.type === 'infra') {
+    const info = d.data || {};
+    const g = info.geoip || {};
+    const asn = info.asn || {};
+    const asnMain = Array.isArray(asn.asns) && asn.asns.length ? asn.asns[0] : {};
+    body.innerHTML = `
+      <div class="sp-section">Red</div>
+      <div class="sp-item"><div class="sp-item-meta">IP</div><div class="sp-item-val" style="color:var(--teal)">${info.ip || '—'}</div></div>
+      <div class="sp-item"><div class="sp-item-meta">Reverse DNS</div><div class="sp-item-val">${info.rdns || '—'}</div></div>
+      <div class="sp-item"><div class="sp-item-meta">País / Ciudad</div><div class="sp-item-val">${[g.country, g.city].filter(Boolean).join(' · ') || 'No disponible'}</div></div>
+      <div class="sp-item"><div class="sp-item-meta">Coordenadas</div><div class="sp-item-val">${(g.lat != null && g.lon != null) ? `${g.lat}, ${g.lon}` : '—'}</div></div>
+      <div class="sp-item"><div class="sp-item-meta">ISP / Org</div><div class="sp-item-val">${g.isp || g.org || '—'}</div></div>
+      <div class="sp-item"><div class="sp-item-meta">ASN</div><div class="sp-item-val">${asnMain.asn || g.asn || '—'} ${asnMain.name ? `· ${asnMain.name}` : ''}</div></div>`;
+  } else if (d.type === 'service') {
+    const p = d.data || {};
+    if (d.subtype === 'cluster') {
+      const target = (allNodes || []).find(n => n.id === 'target');
+      const recon = target?.data?.recon || {};
+      const svc = getReconServiceEntries(recon);
+      const rows = svc.slice(0, 20).map(s => {
+        const color = serviceColorByPort(s.port);
+        const riskLabel = s.risk === 'high' ? 'ALTO' : (s.risk === 'medium' ? 'MEDIO' : 'BAJO');
+        return `<div class="sp-item"><div class="sp-item-meta">${s.port}/${s.proto} · ${s.source}</div><div class="sp-item-val" style="color:${color}">${s.service || 'unknown'} ${s.version || ''} · ${riskLabel}</div></div>`;
+      }).join('');
+      body.innerHTML = `
+        <div class="sp-section">Servicios detectados</div>
+        <div class="sp-item"><div class="sp-item-meta">Total</div><div class="sp-item-val" style="color:var(--amber)">${svc.length}</div></div>
+        ${rows || '<div class="sp-hint">No hay detalle de puertos disponible.</div>'}`;
+    } else {
+      const color = serviceColorByPort(Number(p.port));
+      const riskLabel = p.risk === 'high' ? 'ALTO' : (p.risk === 'medium' ? 'MEDIO' : 'BAJO');
+      body.innerHTML = `
+        <div><span class="sp-sev" style="color:${color}">${riskLabel}</span></div>
+        <div class="sp-section">Servicio expuesto</div>
+        <div class="sp-item"><div class="sp-item-meta">Puerto</div><div class="sp-item-val" style="color:var(--amber)">${p.port}/${p.proto || 'tcp'}</div></div>
+        <div class="sp-item"><div class="sp-item-meta">Servicio</div><div class="sp-item-val">${p.service || 'unknown'}</div></div>
+        <div class="sp-item"><div class="sp-item-meta">Versión</div><div class="sp-item-val">${p.version || 'No identificada'}</div></div>
+        <div class="sp-item"><div class="sp-item-meta">Estado</div><div class="sp-item-val">${p.state || 'open'}</div></div>
+        <div class="sp-item"><div class="sp-item-meta">Fuente</div><div class="sp-item-val">${p.source || 'nmap'}</div></div>`;
+    }
+  }
+
+  panel.classList.add('open');
+}
+function setFilter(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (!allNodes || !allLinks) return;
+
+  let fn, fl;
+  if (filter === 'all') { fn = allNodes; fl = allLinks; }
+  else if (['critical','high','medium'].includes(filter)) {
+    const ids = new Set(['target','wp-core']);
+    allNodes.filter(n => n.type === 'vuln' && n.severity === filter).forEach(n => ids.add(n.id));
+    allNodes.filter(n => n.type === 'plugin' && allLinks.some(l => {
+      const tId = l.target?.id||l.target;
+      return (l.source?.id||l.source)===n.id && allNodes.find(x=>x.id===tId&&x.severity===filter);
+    })).forEach(n => ids.add(n.id));
+    fn = allNodes.filter(n => ids.has(n.id) || (n.type==='vuln'&&n.severity===filter));
+    const nids = new Set(fn.map(n=>n.id));
+    fl = allLinks.filter(l => nids.has(l.source?.id||l.source) && nids.has(l.target?.id||l.target));
+  } else if (filter === 'plugins') {
+    fn = allNodes.filter(n => ['target','plugin','core'].includes(n.type));
+    const nids = new Set(fn.map(n=>n.id));
+    fl = allLinks.filter(l => nids.has(l.source?.id||l.source) && nids.has(l.target?.id||l.target));
+  } else if (filter === 'exposed') {
+    fn = allNodes.filter(n => ['target','file'].includes(n.type));
+    const nids = new Set(fn.map(n=>n.id));
+    fl = allLinks.filter(l => nids.has(l.source?.id||l.source) && nids.has(l.target?.id||l.target));
+  } else if (filter === 'users') {
+    fn = allNodes.filter(n => ['target','user','flag'].includes(n.type));
+    const nids = new Set(fn.map(n=>n.id));
+    fl = allLinks.filter(l => nids.has(l.source?.id||l.source) && nids.has(l.target?.id||l.target));
+  } else if (filter === 'services') {
+    fn = allNodes.filter(n => ['target','infra','service'].includes(n.type));
+    const nids = new Set(fn.map(n=>n.id));
+    fl = allLinks.filter(l => nids.has(l.source?.id||l.source) && nids.has(l.target?.id||l.target));
+  }
+  renderGraph(fn, fl);
+}
+function zoomIn()    { svg.transition().duration(300).call(zoomBehavior.scaleBy, 1.4); }
+function zoomOut()   { svg.transition().duration(300).call(zoomBehavior.scaleBy, 0.7); }
+function resetZoom() {
+  const c = document.getElementById('graph-container');
+  svg.transition().duration(400).call(zoomBehavior.transform, d3.zoomIdentity.translate(c.clientWidth/2, c.clientHeight/2));
+}
+function togglePanel() { document.getElementById('sidePanel').classList.toggle('open'); }
+function populateSidePanel(r) {
+  const recon = r.recon || {};
+  const services = getReconServiceEntries(recon);
+  const geo = recon.geoip || {};
+  const s = r.summary||{};
+  document.getElementById('spTitle').textContent = 'Resumen del escaneo';
+  document.getElementById('spTitle').style.color = 'var(--cyan)';
+  document.getElementById('spBody').innerHTML = `
+    <div class="sp-section">Estadísticas</div>
+    <div class="sp-item"><div class="sp-item-meta">Vulnerabilidades totales</div><div class="sp-item-val" style="color:var(--red);font-size:20px;font-weight:700">${s.vulns_found||0}</div></div>
+    <div class="sp-item"><div class="sp-item-meta">Críticas / Altas</div><div class="sp-item-val">${s.critical_vulns||0} / ${s.high_vulns||0}</div></div>
+    <div class="sp-item"><div class="sp-item-meta">Plugins detectados</div><div class="sp-item-val" style="color:var(--blue)">${s.plugins_found||0}</div></div>
+    <div class="sp-item"><div class="sp-item-meta">Archivos expuestos</div><div class="sp-item-val" style="color:var(--purple)">${s.exposed_files||0}</div></div>
+    <div class="sp-item"><div class="sp-item-meta">Usuarios expuestos</div><div class="sp-item-val" style="color:var(--green)">${s.users_found||0}</div></div>
+    <div class="sp-section">Infraestructura</div>
+    <div class="sp-item"><div class="sp-item-meta">IP objetivo</div><div class="sp-item-val" style="color:var(--teal)">${recon.target_ip || 'No detectada'}</div></div>
+    <div class="sp-item"><div class="sp-item-meta">Geo / ISP</div><div class="sp-item-val">${[geo.country, geo.city, geo.isp].filter(Boolean).join(' · ') || 'No disponible'}</div></div>
+    <div class="sp-item"><div class="sp-item-meta">Servicios abiertos</div><div class="sp-item-val" style="color:var(--amber)">${services.length}</div></div>
+    <div class="sp-section">Interacción</div>
+    <div class="sp-hint">Haz clic en cualquier nodo para ver sus detalles completos en este panel. Arrastra los nodos para reorganizar. Usa los filtros superiores para aislar categorías.</div>`;
+}
+
+document.addEventListener('DOMContentLoaded', loadData);
+window.addEventListener('resize', () => { if (allNodes && allLinks) renderGraph(allNodes, allLinks); });
+</script>
+</body>
+</html>

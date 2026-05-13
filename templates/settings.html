@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/logo.png">
+<link rel="icon" type="image/png" href="/static/logo.png">
+<link rel="apple-touch-icon" href="/static/logo_web_512.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0d1117">
+<title>Configuración — WP VulnScanner</title>
+<link rel="stylesheet" href="/static/settings.css?v=20260427c">
+<link rel="stylesheet" href="/static/pro_theme.css?v=20260427c">
+<style>
+.settings-help {
+  margin: 0 0 18px;
+}
+
+.api-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.api-guide-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--bg-3) 88%, transparent);
+  padding: 12px;
+}
+
+.api-guide-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.api-guide-label {
+  font-family: var(--head);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  color: var(--text);
+}
+
+.api-guide-priority {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border-2);
+  font-family: var(--head);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.api-guide-priority.recommended {
+  color: var(--green);
+  border-color: color-mix(in srgb, var(--green) 45%, var(--border));
+  background: color-mix(in srgb, var(--green) 12%, transparent);
+}
+
+.api-guide-desc {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-2);
+  font-family: var(--sans);
+}
+
+.api-guide-env {
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--text-3);
+  font-family: var(--mono);
+}
+
+.section-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.section-heading-row .section-heading {
+  margin-bottom: 0;
+  flex: 1;
+}
+
+.help-col {
+  max-width: 340px;
+  color: var(--text-2);
+  font-family: var(--sans);
+  font-size: 11px;
+}
+
+.help-col code {
+  font-size: 10px;
+}
+
+@media (max-width: 760px) {
+  .section-heading-row {
+    flex-wrap: wrap;
+  }
+
+  .help-col {
+    max-width: none;
+  }
+}
+</style>
+<script>(function(){try{if(localStorage.getItem('wpvs_theme')==='light')document.documentElement.classList.add('light')}catch(e){}})()</script>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="container">
+
+
+<nav class="topnav">
+  <a class="topnav-brand" href="/">
+    <img src="/static/logo.png" class="topnav-logo-img" alt="WP VulnScanner">
+    <div><div class="topnav-name">WP VulnScanner</div></div>
+  </a>
+  <div class="topnav-links">
+    <a class="topnav-link" href="/">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="4"/></svg>
+      Escaner
+    </a>
+    <a class="topnav-link" href="/dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a class="topnav-link" href="/compare">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="9" height="18" rx="1"/><rect x="13" y="3" width="9" height="18" rx="1"/></svg>
+      Comparar
+    </a>
+    <a class="topnav-link" href="/vulns-db">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      CVE DB
+    </a>
+    <a class="topnav-link" href="/schedules">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
+      Programados
+    </a>
+    <a class="topnav-link active" href="/settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Ajustes
+    </a>
+    <button class="theme-toggle" onclick="(function(){var l=document.documentElement.classList.toggle('light');try{localStorage.setItem('wpvs_theme',l?'light':'dark')}catch(e){}})()" title="Cambiar tema">
+      <svg class="ico-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg class="ico-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+</nav>
+
+
+<div class="page-header">
+  <div class="page-title">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+    Gestión de Claves API
+  </div>
+  <p class="page-subtitle">
+    Configura las claves de servicios externos. Los valores se cifran y nunca se muestran en claro.
+  </p>
+</div>
+
+<div class="quick-help settings-help">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r=".7" fill="currentColor" stroke="none"/></svg>
+  <div>
+    Empieza por <strong>WPScan</strong> y <strong>Gemini/Claude</strong> para tener mejor cobertura de CVEs y funciones IA.
+    El resto de APIs son opcionales y mejoran validación de reputación y alertas.
+  </div>
+</div>
+
+<div class="section-heading">Para qué sirve cada API</div>
+<div class="api-guide-grid" id="apiGuideGrid">
+  <div class="skeleton" style="height:96px;"></div>
+  <div class="skeleton" style="height:96px;"></div>
+  <div class="skeleton" style="height:96px;"></div>
+</div>
+
+
+<div class="security-notice">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+  <p>
+    <strong>Almacenamiento seguro:</strong> Las claves se cifran con Fernet (AES-128-CBC + HMAC-SHA256) derivado de tu <code>SECRET_KEY</code> antes de guardarse en base de datos. Nunca se registran en logs. Las llamadas a esta sección requieren la <code>API_KEY</code> de la aplicación.
+  </p>
+</div>
+
+
+<div class="section-heading-row">
+  <div class="section-heading">Claves configuradas</div>
+  <button class="btn btn-secondary btn-sm" onclick="testAllKeys()" id="btnTestAll" title="Ejecuta un test de conectividad para cada clave guardada">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    Probar todas
+  </button>
+</div>
+<div class="keys-grid" id="keysGrid">
+  <div class="skeleton" style="height:76px;"></div>
+  <div class="skeleton" style="height:76px;"></div>
+</div>
+
+
+<div class="section-heading">Añadir o actualizar clave</div>
+<div class="add-key-card">
+  <div class="add-key-title">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Nueva clave
+  </div>
+  <div class="add-form-grid">
+    <div>
+      <div class="form-label">Servicio</div>
+      <select class="form-select" id="addService" onchange="updateDocsLink()">
+        <option value="">Seleccionar servicio...</option>
+      </select>
+    </div>
+    <div>
+      <div class="form-label">Valor (clave API)</div>
+      <div class="add-value-wrap">
+        <input type="password" id="addValue" placeholder="sk-··· o tu clave API" autocomplete="off">
+        <button class="show-toggle" onclick="toggleAddVisibility()" title="Mostrar/ocultar">
+          <svg id="showIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div style="padding-top:22px">
+      <button class="btn btn-primary btn-sm" onclick="saveKey()" id="btnSave">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Guardar cifrada
+      </button>
+    </div>
+  </div>
+  <div class="form-hint" id="docsHint" style="margin-top:10px;"></div>
+</div>
+
+
+<div style="margin-top:28px">
+<div class="section-heading">Estado del entorno</div>
+<div class="env-section">
+  <div class="section-heading-row" style="margin-bottom:8px;">
+    <p style="font-size:11px;color:var(--text-2);font-family:var(--sans);margin-bottom:0;">
+    Variables de entorno detectadas al arranque (desde <code>.env</code> o BD cifrada).
+    </p>
+    <div class="help-col">Tip: si una variable está en <code>BD cifrada</code>, tiene prioridad sobre <code>.env</code>.</div>
+  </div>
+  <table class="env-table">
+    <thead>
+      <tr>
+        <th>Variable</th>
+        <th>Servicio</th>
+        <th>Uso breve</th>
+        <th>Estado</th>
+        <th>Fuente</th>
+      </tr>
+    </thead>
+    <tbody id="envTableBody">
+      <tr><td colspan="5" style="color:var(--text-3);font-size:11px;padding:12px">Cargando...</td></tr>
+    </tbody>
+  </table>
+  <p class="env-note">Las variables cargadas desde la BD cifrada toman precedencia sobre el archivo <code>.env</code>.</p>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+{% if api_key %}try { localStorage.setItem('wpvs_api_key', {{ api_key | tojson }}); } catch(e) {}{% endif %}
+</script>
+<script src="/static/settings.js?v=20260427c" defer></script>
+</body>
+</html>

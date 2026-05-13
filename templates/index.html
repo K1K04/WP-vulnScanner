@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0d1117">
+<meta name="description" content="WordPress Security Scanner — Professional Vulnerability Assessment">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/static/manifest.json?v=20260427c">
+  <link rel="stylesheet" href="/static/layout-normalize.css?v=20260428">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/logo.png">
+<link rel="icon" type="image/png" href="/static/logo.png">
+<link rel="apple-touch-icon" href="/static/logo_web_512.png">
+<title>WP VulnScanner</title>
+<link rel="dns-prefetch" href="https://nvd.nist.gov">
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="ic-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2L3 6.5v5.5c0 4.8 3.8 9.3 9 10.5 5.2-1.2 9-5.7 9-10.5V6.5L12 2z"/>
+    <polyline points="9 12 11 14 15 10"/>
+  </symbol>
+  <symbol id="ic-shield-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2L3 6.5v5.5c0 4.8 3.8 9.3 9 10.5 5.2-1.2 9-5.7 9-10.5V6.5L12 2z"/>
+    <line x1="12" y1="8" x2="12" y2="12"/>
+    <circle cx="12" cy="15.5" r=".75" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="ic-bug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 2l1.5 2.5"/><path d="M16 2l-1.5 2.5"/><circle cx="12" cy="10" r="3"/>
+    <path d="M12 7V4.5"/><path d="M8 10H4M20 10h-4"/>
+    <path d="M7.5 8L5 6M16.5 8L19 6"/><path d="M9 13L6 16M15 13l3 3"/>
+    <rect x="9" y="10" width="6" height="9" rx="2"/>
+  </symbol>
+  <symbol id="ic-plug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 20v-4M8 16a4 4 0 0 1 8 0"/><rect x="7" y="6" width="10" height="7" rx="1"/>
+    <line x1="9" y1="4" x2="9" y2="6"/><line x1="15" y1="4" x2="15" y2="6"/>
+  </symbol>
+  <symbol id="ic-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="3" width="20" height="5" rx="1"/><rect x="2" y="10" width="20" height="5" rx="1"/>
+    <rect x="2" y="17" width="20" height="4" rx="1"/>
+    <circle cx="6" cy="5.5" r=".75" fill="currentColor" stroke="none"/>
+    <circle cx="6" cy="12.5" r=".75" fill="currentColor" stroke="none"/>
+    <circle cx="6" cy="19" r=".75" fill="currentColor" stroke="none"/>
+    <line x1="10" y1="5.5" x2="16" y2="5.5"/><line x1="10" y1="12.5" x2="16" y2="12.5"/>
+    <line x1="10" y1="19" x2="14" y2="19"/>
+  </symbol>
+  <symbol id="ic-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="5" y="11" width="14" height="10" rx="2"/>
+    <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+    <circle cx="12" cy="16" r="1.5" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="ic-unlock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="5" y="11" width="14" height="10" rx="2"/>
+    <path d="M8 11V7a4 4 0 0 1 8 0"/>
+    <circle cx="12" cy="16" r="1.5" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="ic-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/>
+    <circle cx="12" cy="12" r="4"/>
+    <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="ic-warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10.3 3.4L2.2 17a2 2 0 0 0 1.7 3h16.2a2 2 0 0 0 1.7-3L13.7 3.4a2 2 0 0 0-3.4 0z"/>
+    <line x1="12" y1="9" x2="12" y2="13"/>
+    <circle cx="12" cy="17" r=".75" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/>
+  </symbol>
+  <symbol id="ic-xmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/>
+  </symbol>
+  <symbol id="ic-database" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+    <path d="M3 5v5c0 1.7 4 3 9 3s9-1.3 9-3V5"/>
+    <path d="M3 10v5c0 1.7 4 3 9 3s9-1.3 9-3v-5"/>
+    <path d="M3 15v4c0 1.7 4 3 9 3s9-1.3 9-3v-4"/>
+  </symbol>
+  <symbol id="ic-diff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="3" width="9" height="18" rx="1"/><rect x="13" y="3" width="9" height="18" rx="1"/>
+    <line x1="5" y1="8" x2="8" y2="8"/><line x1="5" y1="11" x2="8" y2="11"/><line x1="5" y1="14" x2="8" y2="14"/>
+    <line x1="16" y1="8" x2="19" y2="8"/><line x1="16.5" y1="11" x2="16.5" y2="14"/><line x1="15" y1="12.5" x2="18" y2="12.5"/>
+  </symbol>
+  <symbol id="ic-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="3 17 9 11 13 15 21 7"/>
+    <line x1="3" y1="21" x2="21" y2="21"/><line x1="3" y1="3" x2="3" y2="21"/>
+  </symbol>
+  <symbol id="ic-export" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+  </symbol>
+  <symbol id="ic-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="23 4 23 10 17 10"/>
+    <path d="M20.5 15a9 9 0 1 1-2.8-6.7L23 10"/>
+  </symbol>
+  <symbol id="ic-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+  </symbol>
+  <symbol id="ic-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="9" cy="7.5" r="3.5"/><path d="M2 21c0-3.5 3.1-6 7-6s7 2.5 7 6"/>
+    <path d="M15 4.5a3.5 3.5 0 1 1 0 6"/><path d="M18.5 15c2 .8 3.5 2.8 3.5 5.5"/>
+  </symbol>
+  <symbol id="ic-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/>
+  </symbol>
+  <symbol id="ic-code" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+  </symbol>
+  <symbol id="ic-tasks" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/>
+    <polyline points="4 6 5 7 7 5"/><polyline points="4 12 5 13 7 11"/><polyline points="4 18 5 19 7 17"/>
+  </symbol>
+  <symbol id="ic-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="12" y1="8" x2="12" y2="8"/><line x1="12" y1="11" x2="12" y2="16"/>
+    <circle cx="12" cy="8" r=".75" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="ic-network" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/>
+    <line x1="12" y1="7" x2="5" y2="17"/><line x1="12" y1="7" x2="19" y2="17"/>
+    <line x1="7" y1="19" x2="17" y2="19"/>
+  </symbol>
+  <symbol id="ic-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+  </symbol>
+  <symbol id="ic-redirect" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7L11 5.5"/>
+    <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7L13.5 18.5"/>
+  </symbol>
+  <symbol id="ic-cert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="3" width="20" height="14" rx="2"/><circle cx="12" cy="10" r="3"/>
+    <line x1="9" y1="21" x2="9" y2="17"/><line x1="15" y1="21" x2="15" y2="17"/>
+    <line x1="9" y1="17" x2="15" y2="17"/>
+  </symbol>
+  <symbol id="ic-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </symbol>
+  <symbol id="ic-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="8" cy="12" r="4.5"/>
+    <line x1="12" y1="12" x2="22" y2="12"/>
+    <line x1="19" y1="12" x2="19" y2="14.5"/><line x1="22" y1="12" x2="22" y2="14.5"/>
+  </symbol>
+  <symbol id="ic-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+    <polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/>
+  </symbol>
+  <symbol id="ic-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+  </symbol>
+  <symbol id="ic-hash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/>
+    <line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/>
+  </symbol>
+  <symbol id="ic-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="22 3 2 3 10 12.5 10 19 14 21 14 12.5 22 3"/>
+  </symbol>
+  <symbol id="ic-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.7" y2="16.7"/>
+  </symbol>
+  <symbol id="ic-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+  </symbol>
+  <symbol id="ic-arrow-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>
+  </symbol>
+  <symbol id="ic-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <line x1="5" y1="12" x2="19" y2="12"/>
+  </symbol>
+  <symbol id="ic-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2"/>
+    <line x1="3" y1="9" x2="21" y2="9"/>
+    <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+  </symbol>
+  <symbol id="ic-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+    <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+  </symbol>
+  <symbol id="ic-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+  </symbol>
+  <symbol id="ic-history" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="1 4 1 10 7 10"/>
+    <path d="M3.5 15a9 9 0 1 0 .5-5.5"/>
+    <polyline points="12 7 12 12 15 15"/>
+  </symbol>
+  <symbol id="ic-loader" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+    <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>
+    <line x1="4.9" y1="4.9" x2="7.8" y2="7.8"/><line x1="16.2" y1="16.2" x2="19.1" y2="19.1"/>
+    <line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
+    <line x1="4.9" y1="19.1" x2="7.8" y2="16.2"/><line x1="16.2" y1="7.8" x2="19.1" y2="4.9"/>
+  </symbol>
+  <symbol id="ic-script" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 18l6-6-6-6"/><path d="M8 6l-6 6 6 6"/><line x1="12" y1="4" x2="10" y2="20"/>
+  </symbol>
+  <symbol id="ic-package" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="16.5" y1="9.4" x2="7.5" y2="4.2"/>
+    <path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+    <polyline points="3.3 7 12 12 20.7 7"/><line x1="12" y1="22" x2="12" y2="12"/>
+  </symbol>
+  <symbol id="ic-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17.9 17.9A10.1 10.1 0 0 1 12 19.5C5.3 19.5 1 12 1 12a18.5 18.5 0 0 1 5.1-5.9"/>
+    <path d="M9.9 4.7A9 9 0 0 1 12 4.5c6.7 0 11 7.5 11 7.5a18.5 18.5 0 0 1-2.2 3.2"/>
+    <path d="M14.1 14.1a3 3 0 0 1-4.2-4.2"/><line x1="1" y1="1" x2="23" y2="23"/>
+  </symbol>
+  <symbol id="ic-dashboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/>
+    <rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>
+  </symbol>
+</svg>
+
+  <link rel="stylesheet" href="/static/app.css?v=20260429">
+  <link rel="stylesheet" href="/static/pro_theme.css?v=20260427c">
+  <link rel="stylesheet" href="/static/ux-enhancements-v2.css?v=20260514">
+  <link rel="stylesheet" href="/static/compliance-enhancements.css?v=20260514">
+  {% if api_key %}<input type="hidden" id="__wpvs_api_key" value="{{ api_key | e }}">{% endif %}
+  {% if permalink_job_id %}<input type="hidden" id="__wpvs_permalink" value="{{ permalink_job_id | e }}">{% endif %}
+  {% if permalink_error %}<input type="hidden" id="__wpvs_permalink_error" value="{{ permalink_error | e }}">{% endif %}
+</head>
+<script>(function(){try{if(localStorage.getItem('wpvs_theme')==='light')document.documentElement.classList.add('light')}catch(e){}})()</script>
+<body class="has-legal-footer">
+<div class="grid-bg"></div>
+<div id="wpvs-toast-container"></div>
+<div class="container">
+
+
+<nav class="topnav">
+  <a class="topnav-brand" href="/">
+    <img src="/static/logo.png" class="topnav-logo-img" alt="WP VulnScanner">
+    <div>
+      <div class="topnav-name">WP VulnScanner</div>
+    </div>
+  </a>
+  <div class="topnav-links">
+    <a class="topnav-link active" href="/">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="4"/></svg>
+      Escaner
+    </a>
+    <a class="topnav-link" href="/dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a class="topnav-link" href="/compare">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="9" height="18" rx="1"/><rect x="13" y="3" width="9" height="18" rx="1"/></svg>
+      Comparar
+    </a>
+    <a class="topnav-link" href="/vulns-db">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v5c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 10v5c0 1.7 4 3 9 3s9-1.3 9-3v-5"/></svg>
+      CVE DB
+    </a>
+    <a class="topnav-link" href="/schedules">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
+      Programados
+    </a>
+    <a class="topnav-link" href="/settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Ajustes
+    </a>
+    <button class="pwa-install-btn" id="pwaInstallBtn" onclick="installPWA()" title="Instalar como aplicación">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Instalar
+    </button>
+    <button class="theme-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="Cambiar tema claro/oscuro">
+      <svg id="themeIconDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg id="themeIconLight" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+</nav>
+
+
+<div id="onboardBanner" class="onboard-banner" style="display:none">
+  <div class="onboard-steps">
+    <div class="onboard-step"><span class="onboard-num">1</span><span>Abre <strong>Ajustes</strong> y define <strong>SECRET_KEY</strong> + <strong>API_KEY</strong></span></div>
+    <div class="onboard-arrow">→</div>
+    <div class="onboard-step"><span class="onboard-num">2</span><span>Pega la URL del sitio que quieres auditar</span></div>
+    <div class="onboard-arrow">→</div>
+    <div class="onboard-step"><span class="onboard-num">3</span><span>Marca la autorización y pulsa <strong>Escanear</strong></span></div>
+    <div class="onboard-arrow">→</div>
+    <div class="onboard-step"><span class="onboard-num">4</span><span>Revisa primero <strong>Vulnerabilidades</strong> y después <strong>Plan de Acción</strong></span></div>
+  </div>
+  <button class="onboard-close" id="onboardDismissBtn" title="Cerrar">✕ Entendido</button>
+</div>
+
+<div class="quick-help" style="margin:18px 0 6px">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r=".7" fill="currentColor" stroke="none"/></svg>
+  <div>
+    <strong>Antes de empezar:</strong> configura <strong>SECRET_KEY</strong> en <a href="/settings">Ajustes</a>, confirma que tienes permiso para auditar el sitio y luego pega la URL completa o el dominio.
+    Si necesitas IA o feeds externos, actívalos también en <a href="/settings">Ajustes</a>.
+  </div>
+</div>
+
+<div class="scan-steps-grid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 18px">
+  <div style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px">
+    <div style="font-family:var(--head);font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--blue);margin-bottom:6px">Paso 1</div>
+    <div style="font-size:13px;line-height:1.5;color:var(--text-2)">Define las claves y ajustes opcionales antes de escanear.</div>
+  </div>
+  <div style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px">
+    <div style="font-family:var(--head);font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--teal);margin-bottom:6px">Paso 2</div>
+    <div style="font-size:13px;line-height:1.5;color:var(--text-2)">Escribe el dominio o la URL exacta que quieres analizar.</div>
+  </div>
+  <div style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px">
+    <div style="font-family:var(--head);font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--amber);margin-bottom:6px">Paso 3</div>
+    <div style="font-size:13px;line-height:1.5;color:var(--text-2)">Acepta la autorización y ejecuta el escaneo.</div>
+  </div>
+  <div style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px">
+    <div style="font-family:var(--head);font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--green);margin-bottom:6px">Paso 4</div>
+    <div style="font-size:13px;line-height:1.5;color:var(--text-2)">Empieza por Vulnerabilidades y cierra con Plan de Acción.</div>
+  </div>
+</div>
+
+<section id="scanSection">
+
+  
+  <div style="padding:44px 0 36px;position:relative">
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);width:500px;height:260px;background:radial-gradient(ellipse,rgba(61,142,255,.1) 0%,transparent 70%);pointer-events:none"></div>
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(61,142,255,.08);border:1px solid rgba(61,142,255,.2);border-radius:20px;padding:5px 14px;font-size:10px;font-family:var(--head);font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue)">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        WordPress Security Auditor
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:36px;flex-wrap:wrap;margin-bottom:22px">
+      <img src="/static/logo.png" alt="WP VulnScanner" class="hero-logo"
+           style="width:auto;height:200px;max-width:300px;object-fit:contain;filter:drop-shadow(0 0 32px rgba(61,142,255,.55)) drop-shadow(0 8px 24px rgba(0,0,0,.5));flex-shrink:0;animation:logo-pulse 4s ease-in-out infinite">
+      <div style="text-align:left">
+        <h1 style="font-family:var(--head);font-size:clamp(34px,5vw,58px);font-weight:700;letter-spacing:-1px;line-height:1.05;color:var(--text);margin-bottom:10px">
+          Detecta vulnerabilidades<br>
+          <span style="background:linear-gradient(90deg,var(--blue),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">antes que los atacantes</span>
+        </h1>
+        <p style="font-size:14px;color:var(--text-3);font-family:var(--sans);line-height:1.7;max-width:460px">
+          Análisis pasivo completo: plugins, temas, CVEs, CISA KEV, EPSS,<br>
+          cabeceras, SSL, usuarios expuestos y superficie de ataque.
+        </p>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-family:var(--mono);color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:4px 10px"><span style="color:var(--green)">✓</span> CISA KEV</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-family:var(--mono);color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:4px 10px"><span style="color:var(--green)">✓</span> EPSS scoring</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-family:var(--mono);color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:4px 10px"><span style="color:var(--green)">✓</span> 333+ plugins</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-family:var(--mono);color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:4px 10px"><span style="color:var(--green)">✓</span> GDPR / PCI-DSS</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-family:var(--mono);color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:4px 10px"><span style="color:var(--green)">✓</span> Sin instalar plugins</span>
+    </div>
+  </div>
+
+  
+  <div class="scan-card scan-card-main">
+    <div class="url-row">
+      <div class="url-input-wrap" id="urlWrap">
+        <svg class="scan-url-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        <input type="text" id="urlInput"
+               placeholder="Pega aquí el dominio o la URL completa, por ejemplo https://mi-wordpress.com"
+               autocomplete="off" spellcheck="false">
+      </div>
+      <button class="btn-scan" id="scanBtn" onclick="startScan()" title="Pega la URL, acepta la autorización y lanza el escaneo">
+        <svg id="btnIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        <span id="btnText">ESCANEAR</span>
+      </button>
+    </div>
+
+    <div class="scan-inline-help">
+      Empieza por pegar el dominio o la URL completa. Después marca la autorización y pulsa <strong>ESCANEAR</strong>.
+    </div>
+
+    
+    <div id="wpDetectorPanel" style="margin-top:14px;padding:12px 16px;background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius);display:none;gap:10px;align-items:center;font-size:12px">
+      <div style="display:flex;align-items:center;gap:8px;flex:1">
+        <div id="wpDetectorIcon" style="font-size:18px">🔍</div>
+        <div>
+          <div id="wpDetectorStatus" style="font-weight:700;color:var(--text-2)">Detectando...</div>
+          <div id="wpDetectorDetail" style="font-size:11px;color:var(--text-3);margin-top:2px"></div>
+        </div>
+      </div>
+      <button id="wpDetectorCloseBtn" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;padding:4px;flex-shrink:0" onclick="document.getElementById('wpDetectorPanel').style.display='none'">✕</button>
+    </div>
+
+    <div class="db-status-row">
+      <div class="db-chip" id="dbStatusChip" title="Estado de la base de datos de vulnerabilidades">
+        <span class="db-chip-dot" id="dbStatusDot"></span>
+        <span id="dbStatusText">BD local — cargando...</span>
+      </div>
+      <button class="db-update-btn" onclick="triggerDbUpdate()" id="dbUpdateBtn" title="Actualizar base de datos ahora">&#x21BB; Actualizar BD</button>
+      <span id="dbUpdateStatus" style="display:none;font-size:10px;font-family:var(--mono);margin-left:8px"></span>
+    </div>
+
+    <div class="legal-box" id="legalBox">
+      <input type="checkbox" class="legal-check" id="legalCheck" onchange="onLegalChange(this)">
+      <div class="legal-text">
+        <span class="legal-title" id="legalTitle">⚖️ Autorización requerida — Lee esto antes de escanear</span>
+        <div class="legal-warning">
+          <strong>🔴 ADVERTENCIA CRÍTICA:</strong><br>
+          Declarar falsamente autorización puede constituir un delito con consecuencias graves:
+          <ul style="margin: 8px 0 0 20px; font-size: 11px;">
+            <li><strong>España:</strong> Art. 264 CP — hasta 2 años de cárcel + multas</li>
+            <li><strong>UE/GDPR:</strong> hasta €20M o 4% de ingresos anuales</li>
+            <li><strong>Responsabilidad civil:</strong> sin límite de daños</li>
+          </ul>
+        </div>
+        <div class="legal-declaration">
+          <strong>DECLARO QUE:</strong>
+          <ul style="margin: 8px 0 0 20px; font-size: 12px;">
+            <li>✓ Soy propietario del sitio web a escanear</li>
+            <li>✓ O tengo <strong>autorización expresa y por escrito</strong> del propietario</li>
+            <li>✓ Entiendo que escanear sin autorización es ilegal</li>
+            <li>✓ Asumo todas las responsabilidades legales</li>
+          </ul>
+        </div>
+        <div style="margin-top: 10px; font-size: 11px; color: var(--text-2); border-top: 1px solid var(--border); padding-top: 8px;">
+          📌 Este escaneo detectará datos personales, credenciales y vulnerabilidades. 
+          Consulta <strong>Cumplimiento</strong> para sanciones según GDPR, PCI-DSS, OWASP, ISO 27001.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="quick-help">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r=".7" fill="currentColor" stroke="none"/></svg>
+    <div>
+      Flujo recomendado: completa <strong>Ajustes</strong>, pega la URL, marca la autorización y lanza el escaneo.
+      Después revisa primero <strong>Vulnerabilidades</strong> y <strong>Plan de Acción</strong>.
+    </div>
+  </div>
+
+  <div class="history-panel" id="historyPanel">
+    <div class="history-header" id="historyHeader">
+      <div class="history-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.5 15a9 9 0 1 0 .5-5.5"/><polyline points="12 7 12 12 15 15"/></svg>
+        Historial de escaneos
+        <span id="histCount" style="color:var(--text-3);font-weight:400;font-size:10px;font-family:var(--sans)"></span>
+      </div>
+      <span class="history-chevron" id="histChevron">&#x25BC;</span>
+    </div>
+    <div class="hist-search-wrap" id="histSearchWrap" style="display:none;border-top:1px solid var(--border);padding:8px 14px;">
+      <div style="display:flex;gap:6px;align-items:center">
+        <div style="flex:1;position:relative">
+          <input type="text" id="histSearch" placeholder="Buscar por URL o dominio…"
+                 oninput="_histSearchDebounce()"
+                 style="width:100%;box-sizing:border-box;background:var(--bg-2);border:1px solid var(--border-2);border-radius:var(--radius);padding:5px 28px 5px 10px;color:var(--text);font-size:11px;font-family:var(--sans);outline:none;">
+          <span id="histSearchClear" onclick="document.getElementById('histSearch').value='';loadHistory(true)"
+                style="display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text-3);font-size:14px;line-height:1">&times;</span>
+        </div>
+        <select id="histRiskSel" onchange="loadHistory(true)"
+                style="background:var(--bg-4);border:1px solid var(--border-2);border-radius:var(--radius);color:var(--text-2);font-size:11px;padding:5px 8px;font-family:var(--sans);cursor:pointer;">
+          <option value="">Todos</option>
+          <option value="CRÍTICO">Crítico</option>
+          <option value="ALTO">Alto</option>
+          <option value="MEDIO">Medio</option>
+          <option value="BAJO">Bajo</option>
+        </select>
+      </div>
+    </div>
+    <div class="history-body" id="historyBody">
+      <div class="history-empty" id="histEmpty"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Cargando historial...</div>
+    </div>
+    <div id="histLoadMore" style="display:none;border-top:1px solid var(--border);padding:8px 14px;text-align:center;">
+      <button onclick="loadHistoryMore()"
+              style="background:none;border:1px solid var(--border-2);color:var(--text-3);border-radius:var(--radius);padding:5px 18px;font-size:11px;font-family:var(--sans);cursor:pointer;transition:all .15s;"
+              onmouseover="this.style.color='var(--text-2)';this.style.borderColor='var(--border-3)'"
+              onmouseout="this.style.color='var(--text-3)';this.style.borderColor='var(--border-2)'">
+        Cargar más ↓
+      </button>
+    </div>
+  </div>
+</section>
+
+<div class="error-state" id="errorState">
+  <h3>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.4L2.2 17a2 2 0 0 0 1.7 3h16.2a2 2 0 0 0 1.7-3L13.7 3.4a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+    Error en el escaneo
+  </h3>
+  <p id="errorMsg"></p>
+  <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+    <button onclick="startScan()" style="background:var(--bg-4);border:1px solid var(--border-2);color:var(--text-2);border-radius:var(--radius);padding:5px 14px;font-size:11px;font-family:var(--head);font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-2)'">↺ Reintentar</button>
+    <span style="font-size:11px;color:var(--text-3)">Si el error persiste, verifica que la URL sea accesible y vuelve a intentarlo.</span>
+  </div>
+</div>
+
+<div id="progressSection">
+  <div class="terminal" id="terminalWrap">
+    <div class="terminal-bar">
+      <div class="terminal-dot d1"></div>
+      <div class="terminal-dot d2"></div>
+      <div class="terminal-dot d3"></div>
+      <div class="terminal-title">Terminal de escaneo</div>
+    </div>
+    <div class="terminal-body" id="termBody"
+         role="log" aria-live="polite" aria-label="Log del escaneo" aria-relevant="additions">
+      <span class="t-cursor"></span>
+    </div>
+    <button id="termScrollBtn" onclick="scrollTermToBottom()" aria-label="Ir al final del log"
+            style="display:none;position:absolute;bottom:56px;right:22px;background:var(--blue);color:#fff;border:none;border-radius:var(--radius);padding:4px 10px;font-size:11px;font-family:var(--head);font-weight:700;letter-spacing:.5px;cursor:pointer;z-index:10;opacity:.92">&#x25BC; Final</button>
+  </div>
+  <div class="prog-wrap">
+    <div class="prog-label">
+      <span id="progMsg">Inicializando...</span>
+      <span id="progPct">0%</span>
+    </div>
+    <div class="prog-meta-row">
+      <span id="scanElapsed">0s transcurridos</span>
+      <span id="progETA"></span>
+    </div>
+    <div class="prog-bar-bg"><div class="prog-bar-fill" id="progFill"
+         role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso del escaneo"></div></div>
+  </div>
+
+  
+  <div id="liveFindingsPanel">
+    <div class="lf-header">
+      <div class="lf-pulse"></div>
+      <span class="lf-header-title">Hallazgos en tiempo real</span>
+      <div class="lf-counters">
+        <span class="lf-cnt lf-cnt-c" id="lfCntC" style="display:none">0 CRÍTICO</span>
+        <span class="lf-cnt lf-cnt-h" id="lfCntH" style="display:none">0 ALTO</span>
+        <span class="lf-cnt lf-cnt-m" id="lfCntM" style="display:none">0 MEDIO</span>
+        <span class="lf-cnt lf-cnt-l" id="lfCntL" style="display:none">0 BAJO</span>
+        <span class="lf-cnt lf-cnt-total" id="lfCntTotal">0 hallazgos</span>
+      </div>
+    </div>
+    <div class="lf-body" id="lfBody"></div>
+  </div>
+</div>
+
+<div id="resultsSection">
+  <div class="results-card">
+
+    
+    <div class="results-header">
+      <div class="results-header-left">
+        <div class="results-shield">
+          <img src="/static/logo.png" style="width:40px;height:40px;object-fit:contain;filter:drop-shadow(0 0 8px rgba(61,142,255,.5))" alt="logo">
+        </div>
+        <div>
+          <div class="results-title">
+            Informe de seguridad
+            <span id="offlineBadge" class="offline-badge" style="display:none">BD Local</span>
+          </div>
+          <div class="results-meta" id="resultMeta"></div>
+        </div>
+      </div>
+      <div class="results-btns">
+        <button class="btn btn-ghost" onclick="newScan()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.5 15a9 9 0 1 0 .5-5.5"/></svg>
+          Nuevo
+        </button>
+        <button class="btn btn-export btn-rescan" id="btnRescan" onclick="rescanTarget()" title="Re-escanear mismo objetivo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.5 15a9 9 0 1 1-2.8-6.7L23 10"/></svg>
+          Re-scan
+        </button>
+        <button class="btn btn-map" onclick="openAttackMap()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+          Mapa
+        </button>
+        <div style="position:relative;display:inline-flex">
+          <button class="btn btn-export" id="exportDropBtn" onclick="toggleExportMenu()" aria-haspopup="true" aria-expanded="false" aria-controls="exportMenu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar &#x25BE;
+          </button>
+          <div id="exportMenu" role="menu" aria-label="Opciones de exportación"
+               style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);min-width:170px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.35)">
+            <button class="btn-export-item" role="menuitem" onclick="downloadPDF();closeExportMenu()" id="btnPDF">PDF Técnico</button>
+            <button class="btn-export-item" role="menuitem" onclick="downloadExecutivePDF();closeExportMenu()" id="btnExecPDF">PDF Ejecutivo</button>
+            <div style="height:1px;background:var(--border);margin:3px 0"></div>
+            <button class="btn-export-item" role="menuitem" onclick="downloadExcel();closeExportMenu()">Excel</button>
+            <button class="btn-export-item" role="menuitem" onclick="downloadCSV();closeExportMenu()">CSV</button>
+            <button class="btn-export-item" role="menuitem" onclick="exportJSON();closeExportMenu()">JSON</button>
+            <button class="btn-export-item" role="menuitem" onclick="downloadHTMLReport();closeExportMenu()" id="btnHTMLExport">HTML</button>
+            <button class="btn-export-item" role="menuitem" onclick="downloadMarkdown();closeExportMenu()" style="color:var(--teal)" title="Markdown para wikis, Notion, Confluence">Markdown</button>
+            <button class="btn-export-item" role="menuitem" onclick="downloadSARIF();closeExportMenu()" style="color:var(--teal)" title="GitHub Advanced Security / GitLab SAST">SARIF <span style="font-size:9px;opacity:.7">GitHub</span></button>
+            <div style="height:1px;background:var(--border);margin:3px 0"></div>
+            <button class="btn-export-item" role="menuitem" onclick="copyPermalink(this);closeExportMenu()">Compartir enlace</button>
+            <a href="/dashboard" style="text-decoration:none;display:block"><button class="btn-export-item" role="menuitem" style="width:100%">Dashboard</button></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="api-error-banner" id="dbStaleBanner">
+      <strong>BD de vulnerabilidades desactualizada.</strong>
+      <span id="dbStaleText"></span>
+      Ejecuta <code>python update_vulns.py</code> para actualizarla.
+    </div>
+
+    <div class="risk-hero">
+      <div class="risk-score-block">
+        <div class="risk-num" id="riskNum">—</div>
+        <div class="risk-label" id="riskLabel">—</div>
+        <div class="risk-sublabel">Puntuación de Riesgo / 100</div>
+        <div class="risk-bar-wrap">
+          <div class="risk-bar-track">
+            <div class="risk-bar-fill" id="riskBar"></div>
+          </div>
+        </div>
+      </div>
+      <div id="riskStatsGrid" class="risk-stats-panel"></div>
+    </div>
+
+    <div id="riskStatsGrid2" class="risk-stats-panel-2"></div>
+    <div id="riskTimeline" style="padding:0 20px 10px;display:none;border-top:1px solid var(--border)">
+      <canvas id="riskTimelineChart" height="60"></canvas>
+    </div>
+    <div id="autoDiffPanel" style="display:none;padding:10px 20px 6px;border-top:1px solid var(--border)"></div>
+    <div class="stat-grid" id="statGrid" style="display:none"></div>
+
+    <div class="tabs-bar" id="tabsBar" role="tablist" aria-label="Secciones del resultado">
+      <button class="tab-btn active" data-tab="surface" role="tab" aria-selected="true" aria-controls="tabContent" id="tb-surface" tabindex="0" onkeydown="tabKeyNav(event)" onclick="switchTab('surface')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M4.5 10.5V20h15V10.5"/><path d="M9 20v-6h6v6"/></svg>
+        Superficie
+        <span class="tab-badge" id="tbSurface" style="background:rgba(0,200,190,.12);color:var(--teal);border-color:rgba(0,200,190,.35)">—</span>
+      </button>
+      <button class="tab-btn" data-tab="vulns" role="tab" aria-selected="false" aria-controls="tabContent" id="tb-vulns" tabindex="-1" onkeydown="tabKeyNav(event)" onclick="switchTab('vulns')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L3 6.5v5.5c0 4.8 3.8 9.3 9 10.5 5.2-1.2 9-5.7 9-10.5V6.5L12 2z"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="15.5" r=".75" fill="currentColor" stroke="none"/></svg>
+        Vulnerabilidades
+        <span class="tab-badge" id="tbVulns">0</span>
+      </button>
+      <button class="tab-btn" data-tab="comps" role="tab" aria-selected="false" aria-controls="tabContent" id="tb-comps" tabindex="-1" onkeydown="tabKeyNav(event)" onclick="switchTab('comps')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l1.5 2.5"/><path d="M16 2l-1.5 2.5"/><circle cx="12" cy="10" r="3"/><path d="M12 7V4.5"/><path d="M8 10H4M20 10h-4"/><rect x="9" y="10" width="6" height="9" rx="2"/></svg>
+        Componentes
+        <span class="tab-badge" id="tbComps">0</span>
+      </button>
+      <button class="tab-btn" data-tab="files" role="tab" aria-selected="false" aria-controls="tabContent" id="tb-files" tabindex="-1" onkeydown="tabKeyNav(event)" onclick="switchTab('files')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Archivos
+        <span class="tab-badge" id="tbFiles">0</span>
+      </button>
+      <button class="tab-btn" data-tab="info" role="tab" aria-selected="false" aria-controls="tabContent" id="tb-info" tabindex="-1" onkeydown="tabKeyNav(event)" onclick="switchTab('info')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r=".75" fill="currentColor" stroke="none"/></svg>
+        Información Técnica
+        <span class="tab-badge" id="tbInfo" style="display:none"></span>
+      </button>
+      <div class="tab-sep"></div>
+      <button class="tab-btn" data-tab="action" role="tab" aria-selected="false" aria-controls="tabContent" id="tb-action" tabindex="-1" onkeydown="tabKeyNav(event)" onclick="switchTab('action')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><polyline points="4 6 5 7 7 5"/><polyline points="4 12 5 13 7 11"/><polyline points="4 18 5 19 7 17"/></svg>
+        Plan de Acción
+      </button>
+      <button class="tab-btn" data-tab="compliance" role="tab" aria-selected="false" aria-controls="tabContent" id="tb-compliance" tabindex="-1" onkeydown="tabKeyNav(event)" onclick="switchTab('compliance')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Cumplimiento
+        <span class="tab-badge" id="tbCompliance" style="display:none;background:rgba(255,184,48,.2);color:var(--amber)">!</span>
+      </button>
+      <div class="tab-sep"></div>
+      <button class="tab-btn" data-tab="deepscan" role="tab" aria-selected="false" aria-controls="tabContent" id="tb-deepscan" tabindex="-1" onkeydown="tabKeyNav(event)" onclick="switchTab('deepscan')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        Deep Scan
+        <span class="tab-badge" id="tbDeepScan" style="background:rgba(0,200,190,.15);color:var(--teal);border-color:rgba(0,200,192,.3)">0</span>
+      </button>
+      <button class="tab-btn" data-tab="recon" role="tab" aria-selected="false" aria-controls="tabContent" id="tb-recon" tabindex="-1" onkeydown="tabKeyNav(event)" onclick="switchTab('recon')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v3h3"/></svg>
+        Recon Pasivo
+        <span class="tab-badge" id="reconBadge" style="display:none"></span>
+      </button>
+      <div class="tab-sep"></div>
+      <button class="tab-btn" data-tab="aiplan" role="tab" aria-selected="false" aria-controls="tabContent" id="tb-aiplan" tabindex="-1" onkeydown="tabKeyNav(event)" onclick="switchTab('aiplan')" title="Plan de remediación generado por IA">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 8v4l3 3"/><circle cx="19" cy="5" r="3" fill="none"/><path d="M19 3v2M17 5h2"/></svg>
+        Plan IA
+        <span style="font-size:9px;background:rgba(139,92,246,.2);color:#c4b5fd;border:1px solid rgba(139,92,246,.3);border-radius:8px;padding:1px 6px;font-family:var(--mono);font-weight:700">IA</span>
+      </button>
+      <button class="tab-btn" data-tab="aichat" role="tab" aria-selected="false" aria-controls="tabContent" id="tb-aichat" tabindex="-1" onkeydown="tabKeyNav(event)" onclick="switchTab('aichat')" title="Asistente de seguridad con contexto del escaneo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="10" r=".5" fill="currentColor"/><circle cx="12" cy="10" r=".5" fill="currentColor"/><circle cx="15" cy="10" r=".5" fill="currentColor"/></svg>
+        Chat IA
+        <span style="font-size:9px;background:rgba(139,92,246,.2);color:#c4b5fd;border:1px solid rgba(139,92,246,.3);border-radius:8px;padding:1px 6px;font-family:var(--mono);font-weight:700">IA</span>
+      </button>
+    </div>
+
+    <div id="tabVulnsTools" class="vuln-tools" style="display:none">
+      <input type="text" id="vulnSearch" placeholder="Buscar CVE, plugin, título..." oninput="filterVulns()" class="vuln-search-input">
+      <select id="vulnComponentSel" onchange="filterVulns()" class="vuln-sort-sel" title="Filtrar por componente">
+        <option value="">Todos los componentes</option>
+      </select>
+      <div class="sev-tabs">
+        <button class="sev-tab active" data-sev="all"      onclick="setVulnSev('all')">Todas</button>
+        <button class="sev-tab"        data-sev="critical"  onclick="setVulnSev('critical')">Crítico</button>
+        <button class="sev-tab"        data-sev="high"      onclick="setVulnSev('high')">Alto</button>
+        <button class="sev-tab"        data-sev="medium"    onclick="setVulnSev('medium')">Medio</button>
+      </div>
+      <select id="vulnSort" onchange="filterVulns()" class="vuln-sort-sel">
+        <option value="sev">Ordenar: Severidad</option>
+        <option value="cvss">Ordenar: CVSS</option>
+        <option value="kev">Ordenar: KEV/EPSS</option>
+        <option value="plugin">Ordenar: Plugin</option>
+      </select>
+      <span id="vulnCount" style="font-size:11px;color:var(--text-3);white-space:nowrap;flex-shrink:0"></span>
+    </div>
+
+    <div id="actionSummaryPanel" style="display:none;margin:0 0 12px 0"></div>
+    <div id="tabContent" class="tab-content"></div>
+
+    <div id="vulnPagination" style="display:none;padding:12px 0;align-items:center;gap:8px;justify-content:center;border-top:1px solid var(--border)">
+      <button id="vulnPrevBtn" onclick="vulnPageChange(-1)" style="background:var(--bg-3);border:1px solid var(--border-2);color:var(--text-2);border-radius:var(--radius);padding:4px 14px;font-size:12px;cursor:pointer">← Anterior</button>
+      <span id="vulnPageInfo" style="font-size:11px;color:var(--text-3)"></span>
+      <button id="vulnNextBtn" onclick="vulnPageChange(1)" style="background:var(--bg-3);border:1px solid var(--border-2);color:var(--text-2);border-radius:var(--radius);padding:4px 14px;font-size:12px;cursor:pointer">Siguiente →</button>
+    </div>
+
+    <div class="export-row" aria-label="Acciones del resultado" style="justify-content:flex-end">
+      <span style="font-size:11px;color:var(--text-3);margin-right:auto">Usa el menú Exportar &#x25BE; para descargar en distintos formatos</span>
+      <button class="btn btn-export" onclick="copyJSON()" title="Copiar resultado completo en formato JSON">Copiar datos (JSON)</button>
+    </div>
+
+  </div>
+</div>
+
+
+<div class="modal-overlay" id="cveModal" style="display:none" onclick="if(event.target===this)closeCVEModal()">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-title" id="cveModalTitle">Detalle de Vulnerabilidad</div>
+    <div id="cveModalBody" style="max-height:70vh;overflow-y:auto"></div>
+    <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-ghost" id="cveNVDBtn" style="display:none">NVD (NIST) ↗</button>
+      <button class="btn btn-ghost" id="cveGHBtn" style="display:none">GitHub Advisory ↗</button>
+      <button class="btn btn-export" id="cveExploitBtn">Buscar ExploitDB ↗</button>
+      <button class="btn btn-ghost" onclick="closeCVEModal()" style="margin-left:auto">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<footer class="site-legal-footer" aria-label="Aviso legal de licencia">
+  <div class="site-legal-footer-inner">
+    <div class="site-legal-head">
+      <div class="site-legal-brand">WP VulnScanner</div>
+      <div class="site-legal-badges">
+        <span class="site-legal-badge owner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.2"></circle><path d="M5 20a7 7 0 0 1 14 0"></path></svg>
+          Autor: Reservado
+        </span>
+        <span class="site-legal-badge copyright">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M15.5 9.5a4 4 0 1 0 0 5"></path></svg>
+          Copyright reservado
+        </span>
+        <span class="site-legal-badge non-commercial">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#ic-warning"></use></svg>
+          Licencia no comercial: prohibida su reventa
+        </span>
+      </div>
+    </div>
+    <div class="site-legal-note">
+      Uso permitido para auditoria y aprendizaje. Se prohibe la comercializacion o reventa sin autorizacion expresa del autor.
+    </div>
+  </div>
+</footer>
+
+</div>
+
+
+<div id="mapOverlay" role="dialog" aria-modal="true" aria-label="Mapa de superficie de ataque">
+  <div class="map-topbar">
+    <div class="map-topbar-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L3 6.5v5.5c0 4.8 3.8 9.3 9 10.5 5.2-1.2 9-5.7 9-10.5V6.5L12 2z"/></svg>
+      Attack Surface Map
+    </div>
+    <button class="map-close-btn" onclick="closeAttackMap()" title="Cerrar mapa (Esc)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      ← Volver al informe
+    </button>
+  </div>
+  <iframe id="mapIframe" src="" title="Attack Surface Map" allowfullscreen></iframe>
+</div>
+
+  <script src="/static/ux_enhancements.js?v=20260427c" defer></script>
+  <script src="/static/app.js?v=20260427c" defer></script>
+<script src="/static/vendor/chart.min.js?v=20260427c"></script>
+</body>
+</html>

@@ -1,0 +1,477 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Compliance & Legal Enhancements v2 — Super Claro con Penas
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Legal Box Mejorado */
+.legal-box {
+  background: linear-gradient(135deg, var(--bg-3) 0%, var(--bg-4) 100%);
+  border: 2px solid var(--red-dim);
+  border-left: 5px solid var(--red);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  box-shadow: 0 0 16px rgba(255, 69, 96, 0.12);
+  animation: legal-alert-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes legal-alert-pulse {
+  0%, 100% {
+    box-shadow: 0 0 16px rgba(255, 69, 96, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(255, 69, 96, 0.2);
+  }
+}
+
+.legal-check {
+  min-width: 18px;
+  min-height: 18px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: var(--green);
+}
+
+.legal-text {
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.legal-title {
+  display: block;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--red);
+  margin-bottom: 8px;
+  letter-spacing: 0.3px;
+}
+
+.legal-warning {
+  background: linear-gradient(135deg, rgba(255, 69, 96, 0.08) 0%, rgba(255, 154, 69, 0.08) 100%);
+  border: 1px solid rgba(255, 69, 96, 0.3);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--red);
+}
+
+.legal-warning ul {
+  list-style: none;
+  padding: 0 !important;
+}
+
+.legal-warning li {
+  padding: 4px 0;
+  color: var(--text);
+}
+
+.legal-declaration {
+  background: rgba(37, 197, 138, 0.08);
+  border-left: 3px solid var(--green);
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-weight: 500;
+}
+
+.legal-declaration ul {
+  list-style: none;
+  padding: 0 !important;
+}
+
+.legal-declaration li {
+  padding: 4px 0;
+  color: var(--text);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Compliance Framework Cards — Penas Claras
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.compliance-framework-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.compliance-fw-card {
+  background: var(--bg-4);
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
+  overflow: hidden;
+}
+
+.compliance-fw-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(61, 142, 255, 0.1) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.compliance-fw-card:hover {
+  border-color: rgba(61, 142, 255, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(61, 142, 255, 0.15);
+}
+
+.compliance-fw-card:hover::before {
+  opacity: 1;
+}
+
+.compliance-fw-card-title {
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 6px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.compliance-fw-card-meta {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-bottom: 6px;
+}
+
+.compliance-fw-card-status {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+/* Status color variations */
+.compliance-fw-card.status-critical .compliance-fw-card-status {
+  color: var(--red) !important;
+}
+
+.compliance-fw-card.status-high .compliance-fw-card-status {
+  color: var(--orange) !important;
+}
+
+.compliance-fw-card.status-medium .compliance-fw-card-status {
+  color: var(--amber) !important;
+}
+
+.compliance-fw-card.status-low .compliance-fw-card-status {
+  color: var(--blue) !important;
+}
+
+.compliance-fw-card.status-ok .compliance-fw-card-status {
+  color: var(--green) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Compliance Framework Sections — Penas Detalladas
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.compliance-fw {
+  background: var(--bg-3);
+  border-radius: 8px;
+  margin-top: 20px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.compliance-fw-head {
+  padding: 14px;
+  background: var(--bg-4);
+  border-bottom: 2px solid var(--border-2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.compliance-fw-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.compliance-fw-status {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.compliance-fw-body {
+  padding: 16px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Penalty Box — SUPER CLARO
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.compliance-penalty-box {
+  background: linear-gradient(135deg, rgba(255, 69, 96, 0.06) 0%, rgba(255, 154, 69, 0.06) 100%);
+  border: 2px solid var(--red-dim);
+  border-left: 5px solid var(--red);
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin: 10px 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.compliance-penalty-title {
+  font-weight: 700;
+  color: var(--red);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.compliance-penalty-content {
+  color: var(--text);
+}
+
+.compliance-penalty-list {
+  list-style: none;
+  margin-top: 6px;
+  padding-left: 0;
+}
+
+.compliance-penalty-list li {
+  padding: 4px 0;
+  padding-left: 20px;
+  position: relative;
+  color: var(--text);
+}
+
+.compliance-penalty-list li::before {
+  content: '•';
+  position: absolute;
+  left: 8px;
+  font-weight: bold;
+  color: var(--red);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Framework Details — Checklist y Timeline
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.compliance-section {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.compliance-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.compliance-section-title {
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.compliance-checklist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.compliance-checklist li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.compliance-checklist li::before {
+  content: '✓';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: var(--green);
+  color: white;
+  border-radius: 3px;
+  font-weight: bold;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.compliance-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.compliance-timeline-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  background: var(--bg-4);
+  border-left: 3px solid var(--border-2);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.compliance-timeline-item.critical {
+  background: rgba(255, 69, 96, 0.08);
+  border-left-color: var(--red);
+}
+
+.compliance-timeline-item.high {
+  background: rgba(255, 154, 69, 0.08);
+  border-left-color: var(--orange);
+}
+
+.compliance-timeline-item.medium {
+  background: rgba(255, 193, 74, 0.08);
+  border-left-color: var(--amber);
+}
+
+.compliance-timeline-badge {
+  font-weight: 700;
+  font-size: 10px;
+  padding: 3px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  min-width: 50px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.compliance-timeline-item.critical .compliance-timeline-badge {
+  background: var(--red);
+  color: white;
+}
+
+.compliance-timeline-item.high .compliance-timeline-badge {
+  background: var(--orange);
+  color: white;
+}
+
+.compliance-timeline-item.medium .compliance-timeline-badge {
+  background: var(--amber);
+  color: white;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Compliance Score & Metrics
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.compliance-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.compliance-metric {
+  background: var(--bg-4);
+  border: 1px solid var(--border-2);
+  border-radius: 6px;
+  padding: 10px;
+  text-align: center;
+}
+
+.compliance-metric-lbl {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 4px;
+}
+
+.compliance-metric-val {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Compliance Score Bar
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.compliance-score-container {
+  margin: 14px 0;
+  padding: 12px;
+  background: var(--bg-4);
+  border-radius: 6px;
+}
+
+.compliance-score-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.compliance-score-bar {
+  height: 8px;
+  background: var(--bg-3);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.compliance-score-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease-out;
+}
+
+.compliance-score-fill.score-critical {
+  background: linear-gradient(90deg, var(--red), var(--orange));
+}
+
+.compliance-score-fill.score-high {
+  background: linear-gradient(90deg, var(--orange), var(--amber));
+}
+
+.compliance-score-fill.score-good {
+  background: linear-gradient(90deg, var(--amber), var(--green));
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .compliance-framework-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .legal-box {
+    flex-direction: column;
+  }
+  
+  .legal-check {
+    align-self: flex-start;
+  }
+}

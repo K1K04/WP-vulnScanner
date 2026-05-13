@@ -1,0 +1,82 @@
+# ── Control de versiones ───────────────────────────────────────────────────────
+.git
+.gitignore
+.github
+
+# ── Entornos virtuales Python ─────────────────────────────────────────────────
+.venv
+venv
+env
+__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# ── Secretos y configuración local ───────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+.envrc
+secrets/
+
+# ── Bases de datos locales (NO copiar BDs al contenedor) ─────────────────────
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+vulns.db
+scans.db
+
+# ── Tests ─────────────────────────────────────────────────────────────────────
+tests/
+pytest.ini
+.pytest_cache
+.coverage
+htmlcov/
+coverage.xml
+
+# ── Herramientas de desarrollo ────────────────────────────────────────────────
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Documentación y artefactos ───────────────────────────────────────────────
+docs/
+*.md
+*.zip
+*.tar.gz
+*.tar
+
+# ── Runtime artifacts ────────────────────────────────────────────────────────
+.update_checkpoint.json
+update_log.json
+reports/
+uploads/
+tmp/
+temp/
+dist/
+*.bak
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Scripts de despliegue (no van en la imagen) ───────────────────────────────
+scripts/
+
+# ── Imágenes de alta resolución que sólo se necesitan en dev ─────────────────
+static/logo_hires.png
+
+# ── Node ──────────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log
