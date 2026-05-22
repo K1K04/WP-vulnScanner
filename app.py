@@ -34,7 +34,29 @@ except ImportError:
 from flask import Flask, render_template, jsonify
 from flask import Response
 from flask import request as _req
-from flask_compress import Compress
+try:
+    from flask_compress import Compress as _RealCompress
+    Compress = _RealCompress
+    _FLASK_COMPRESS_AVAILABLE = True
+except ImportError:
+    _FLASK_COMPRESS_AVAILABLE = False
+    class _CompressFallback:  # Graceful no-op fallback
+        def __init__(self, app=None):
+            if app:
+                self.init_app(app)
+        def init_app(self, app):
+            pass
+    Compress = _CompressFallback
+
+try:
+    from flask_restx import Api, Resource, Namespace, fields as restx_fields  # type: ignore[import-not-found]
+    FLASK_RESTX_AVAILABLE = True
+except ImportError:
+    Api = None
+    Resource = None
+    Namespace = None
+    restx_fields = None
+    FLASK_RESTX_AVAILABLE = False
 
                                                                                 
 if _load_dotenv:
@@ -60,29 +82,87 @@ app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
 
 # Comprimir respuestas JSON
 Compress(app)
-app.config['COMPRESS_MIN_SIZE'] = 500  # Solo comprimir > 500 bytes
-
-                         
-try:
-    from flask_compress import Compress as _Compress
-    _Compress(app)
+if _FLASK_COMPRESS_AVAILABLE:
+    app.config['COMPRESS_MIN_SIZE'] = 500  # Solo comprimir > 500 bytes
     log.info("flask-compress activo")
-except ImportError:
-    pass
+else:
+    log.warning("flask-compress no disponible — respuestas sin compresión gzip")
+
+# ──── Flask-RESTX Setup ────────────────────────────────────────────────────────
+if FLASK_RESTX_AVAILABLE and Api is not None:
+    app.config['RESTX_MASK_SWAGGER'] = False  # Disable field masking
+    api = Api(
+        app,
+        version='6.1',
+        title='WP VulnScanner Pro API',
+        description='API para análisis de vulnerabilidades en WordPress',
+        doc='/docs',  # Swagger UI endpoint
+        prefix='/api/v1',
+    )
+    log.info("Flask-RESTX initialized — OpenAPI docs available at /api/v1/docs")
+else:
+    api = None
+    log.warning("Flask-RESTX no disponible — endpoints sin documentación OpenAPI")
 
                                                                                 
-if not os.environ.get("SECRET_KEY"):
-    log.warning("SECRET_KEY no definida — usando clave temporal. Define una en producción.")
-
 _sk = os.environ.get("SECRET_KEY", "")
 _ak = os.environ.get("API_KEY", "")
+
+_APP_ENV = (os.environ.get("APP_ENV") or os.environ.get("FLASK_ENV") or "").strip().lower()
+_IS_PROD = _APP_ENV in {"prod", "production"}
+_IS_TEST = _APP_ENV in {"test", "testing"}
+_runtime_security_warnings: list[str] = []
+
+if not _sk:
+    msg = "SECRET_KEY no definida — usando clave temporal."
+    _runtime_security_warnings.append(msg)
+    log.warning("%s Define una en producción.", msg)
+    if _IS_PROD:
+        raise RuntimeError("Configuración insegura en producción: SECRET_KEY ausente")
+
+if not _ak:
+    msg = "API_KEY no definida — endpoints API no están protegidos correctamente."
+    _runtime_security_warnings.append(msg)
+    log.warning(msg)
+    if _IS_PROD:
+        raise RuntimeError("Configuración insegura en producción: API_KEY ausente")
+
+if _sk and len(_sk) < 32:
+    msg = "SECRET_KEY débil: usa al menos 32 caracteres."
+    _runtime_security_warnings.append(msg)
+    log.warning(msg)
+    if _IS_PROD:
+        raise RuntimeError("Configuración insegura en producción: SECRET_KEY débil")
+
+if _ak and len(_ak) < 24:
+    msg = "API_KEY débil: usa al menos 24 caracteres."
+    _runtime_security_warnings.append(msg)
+    log.warning(msg)
+    if _IS_PROD:
+        raise RuntimeError("Configuración insegura en producción: API_KEY débil")
+
 if _sk and _ak and _sk == _ak:
-    log.warning("⚠️  SECRET_KEY y API_KEY son iguales — riesgo de seguridad.")
+    msg = "SECRET_KEY y API_KEY son iguales — riesgo de seguridad."
+    _runtime_security_warnings.append(msg)
+    log.warning("⚠️ %s", msg)
+    if _IS_PROD:
+        raise RuntimeError("Configuración insegura en producción: claves idénticas")
 
 if not state.VERIFY_SSL:
     import urllib3
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-    log.warning("VERIFY_SSL=false — verificación desactivada (solo lab)")
+    if not _IS_TEST:
+        _runtime_security_warnings.append("VERIFY_SSL=false — solo permitido en laboratorio.")
+        log.warning("VERIFY_SSL=false — verificación desactivada (solo lab)")
+    if _IS_PROD:
+        raise RuntimeError("Configuración insegura en producción: VERIFY_SSL=false")
+
+
+def _template_ctx() -> dict:
+    return {
+        "api_key": state.API_KEY,
+        "security_warnings": _runtime_security_warnings,
+    }
 
 
 _UI_BASIC_USER = os.environ.get("UI_BASIC_AUTH_USER", "").strip()
@@ -111,6 +191,15 @@ def _ensure_runtime_bootstrap() -> None:
 
                                                                      
 _ensure_runtime_bootstrap()
+
+# Iniciar limpieza en dev/producción (no en tests)
+if not _IS_TEST:
+    try:
+        from db import _start_cleanup_timer
+
+        _start_cleanup_timer()
+    except Exception as _e:
+        log.warning("No se pudo iniciar cleanup timer: %s", _e)
 
 
 def _ensure_boot_recovery() -> None:
@@ -225,7 +314,7 @@ def not_found(e):
     from flask import request as _r
     if _r.path.startswith("/api/") or _r.path.startswith("/scan"):
         return jsonify({"error": "Ruta no encontrada", "path": _r.path}), 404
-    return render_template("index.html", api_key=state.API_KEY), 404
+    return render_template("index.html", **_template_ctx()), 404
 
 @app.errorhandler(405)
 def method_not_allowed(e):
@@ -236,13 +325,13 @@ def internal_error(e):
     log.error("Error interno: %s", e, exc_info=True)
     if _req.path.startswith("/api/") or _req.path.startswith("/scan"):
         return jsonify({"error": "Error interno del servidor"}), 500
-    return render_template("index.html", api_key=state.API_KEY), 500
+    return render_template("index.html", **_template_ctx()), 500
 
 
                                                                                  
 @app.route("/")
 def index():
-    return render_template("index.html", api_key=state.API_KEY)
+    return render_template("index.html", **_template_ctx())
 
 
                                                                                  

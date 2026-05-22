@@ -19,11 +19,13 @@ from datetime import datetime
 
 import requests as _req
 
+import state
 from state import (
     VERIFY_SSL, SCAN_TIMEOUT_S,
     _scan_semaphore, _active_scans_count, _active_scans_lock,
     _jobs, _jobs_lock, _db_write_lock, _env_int, _env_bool,
 )
+from error_codes import ErrorCode, ScanError, format_error
 from db import _db, get_latest_scan_same_url, save_scan, upsert_job_state
 
 log = logging.getLogger("wpvulnscan.engine")
@@ -164,14 +166,23 @@ def _run_scan(job_id: str, url: str, legal: bool, user_ip: str,
             _active_scans_count += 1
 
     if not acquired:
+        debug_mode = state.DEBUG_MODE
+        error_obj = ScanError(
+            ErrorCode.SCAN_BUSY,
+            job_id=job_id,
+            url=url,
+            active_scans=_active_scans_count,
+            max_concurrent=_env_int("MAX_CONCURRENT_SCANS", 5, min_val=1, max_val=50),
+        )
         with _jobs_lock:
             _jobs[job_id]["status"] = "error"
-            _jobs[job_id]["error"]  = (
-                "Servidor ocupado. Demasiados escaneos simultáneos. Reintenta en un momento."
-            )
+            _jobs[job_id]["error"] = error_obj.message
+            _jobs[job_id]["error_code"] = error_obj.code.code_str
             _jobs[job_id]["queue"].put({
                 "type": "error",
-                "message": "Servidor ocupado. Demasiados escaneos simultáneos.",
+                "message": error_obj.message,
+                "error_code": error_obj.code.code_str,
+                **(error_obj.to_dict(debug_mode=debug_mode).get("debug", {})),
             })
         try:
             upsert_job_state(
@@ -180,7 +191,7 @@ def _run_scan(job_id: str, url: str, legal: bool, user_ip: str,
                 "error",
                 legal=legal,
                 user_ip=user_ip,
-                error="Servidor ocupado. Demasiados escaneos simultáneos.",
+                error=error_obj.message,
             )
         except Exception as e:
             log.warning("No se pudo persistir estado de job ocupado %s: %s", job_id, e)
@@ -366,6 +377,7 @@ def _run_scan(job_id: str, url: str, legal: bool, user_ip: str,
             threading.Thread(target=_fire_configured_webhooks, daemon=True).start()
 
         except TimeoutError as te:
+            debug_mode = state.DEBUG_MODE
             log.warning("Timeout en escaneo %s: %s", job_id, te)
             try:
                 _partial = getattr(scanner, "_result", None)
@@ -382,6 +394,7 @@ def _run_scan(job_id: str, url: str, legal: bool, user_ip: str,
                     with _jobs_lock:
                         _jobs[job_id]["status"] = "timeout"
                         _jobs[job_id]["result"] = rd
+                        _jobs[job_id]["error_code"] = ErrorCode.SCAN_TIMEOUT.code_str
                     try:
                         upsert_job_state(
                             job_id,
@@ -394,13 +407,28 @@ def _run_scan(job_id: str, url: str, legal: bool, user_ip: str,
                         )
                     except Exception as e:
                         log.warning("No se pudo persistir estado timeout %s: %s", job_id, e)
-                    eq.put({"type": "done", "result": rd, "partial": True, "warning": str(te)})
+                    eq.put({
+                        "type": "done",
+                        "result": rd,
+                        "partial": True,
+                        "warning": str(te),
+                        "error_code": ErrorCode.SCAN_TIMEOUT.code_str,
+                    })
                     return
             except Exception as _save_err:
                 log.warning("No se pudo guardar resultado parcial: %s", _save_err)
+            
+            error_obj = ScanError(
+                ErrorCode.SCAN_TIMEOUT,
+                job_id=job_id,
+                url=url,
+                timeout_seconds=SCAN_TIMEOUT_S,
+                exception=str(te),
+            )
             with _jobs_lock:
                 _jobs[job_id]["status"] = "error"
-                _jobs[job_id]["error"]  = str(te)
+                _jobs[job_id]["error"] = error_obj.message
+                _jobs[job_id]["error_code"] = error_obj.code.code_str
             try:
                 upsert_job_state(
                     job_id,
@@ -408,18 +436,31 @@ def _run_scan(job_id: str, url: str, legal: bool, user_ip: str,
                     "error",
                     legal=legal,
                     user_ip=user_ip,
-                    error=str(te),
+                    error=error_obj.message,
                 )
             except Exception as e:
                 log.warning("No se pudo persistir estado error(timeout) %s: %s", job_id, e)
-            eq.put({"type": "error", "message": str(te)})
+            eq.put({
+                "type": "error",
+                "message": error_obj.message,
+                "error_code": error_obj.code.code_str,
+                **(error_obj.to_dict(debug_mode=debug_mode).get("debug", {})),
+            })
 
         except Exception as e:
+            debug_mode = state.DEBUG_MODE
             log.error("Error en escaneo %s: %s", job_id, e, exc_info=True)
-            _err_msg = "Error inesperado durante el escaneo. Consulta los logs del servidor."
+            error_obj = ScanError(
+                ErrorCode.INTERNAL_ERROR,
+                job_id=job_id,
+                url=url,
+                exception=str(e),
+                exception_type=type(e).__name__,
+            )
             with _jobs_lock:
                 _jobs[job_id]["status"] = "error"
-                _jobs[job_id]["error"]  = _err_msg
+                _jobs[job_id]["error"] = error_obj.message
+                _jobs[job_id]["error_code"] = error_obj.code.code_str
             try:
                 upsert_job_state(
                     job_id,
@@ -427,11 +468,16 @@ def _run_scan(job_id: str, url: str, legal: bool, user_ip: str,
                     "error",
                     legal=legal,
                     user_ip=user_ip,
-                    error=_err_msg,
+                    error=error_obj.message,
                 )
             except Exception as e2:
                 log.warning("No se pudo persistir estado error %s: %s", job_id, e2)
-            eq.put({"type": "error", "message": _err_msg})
+            eq.put({
+                "type": "error",
+                "message": error_obj.message,
+                "error_code": error_obj.code.code_str,
+                **(error_obj.to_dict(debug_mode=debug_mode).get("debug", {})),
+            })
 
     finally:
         if acquired:

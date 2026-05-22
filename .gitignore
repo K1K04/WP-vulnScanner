@@ -1,2 +1,90 @@
-.aider*
+# ── Entorno y secretos ──────────────────────────────
 .env
+.env.*
+!.env.example
+
+# ── Bases de datos ──────────────────────────────────
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ── Python ──────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+*.so
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ── Entorno virtual ─────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Tests y cobertura ───────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+coverage.xml
+*.cover
+nosetests.xml
+test-results/
+
+# ── Docker ──────────────────────────────────────────
+*.log
+docker-compose.override.yml
+
+# ── Logs y temporales ───────────────────────────────
+logs/
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+
+# ── Exportaciones generadas ─────────────────────────
+exports/
+reports/
+*.pdf
+*.xlsx
+*.csv
+*.sarif
+
+# ── Aider (AI coding assistant) ─────────────────────
+.aider*
+.aider.tags.cache.v*/
+
+# ── IDEs ────────────────────────────────────────────
+.vscode/
+.idea/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+Thumbs.db
+
+# ── Mypy / Ruff / Linters ───────────────────────────
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+dmypy.json
+
+# ── Archivos de escaneo sensibles ───────────────────
+scans/
+scan_results/
+wpvuln*.db
+vulns*.db
+scans*.db

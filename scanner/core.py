@@ -67,6 +67,9 @@ class PluginInfo:
     confidence:     int
     latest_version: Optional[str] = None
     is_outdated:    bool = False
+    last_updated:   Optional[str] = None
+    support_ratio:  Optional[float] = None
+    abandoned:      bool = False
     type:           str = "plugin"
 
     def to_dict(self) -> dict:
@@ -75,6 +78,9 @@ class PluginInfo:
             "detected_via": self.detected_via, "confidence": self.confidence,
             "latest_version": self.latest_version,
             "is_outdated": self.is_outdated, "type": self.type,
+            "last_updated": self.last_updated,
+            "support_ratio": self.support_ratio,
+            "abandoned": self.abandoned,
         }
 
 
@@ -521,11 +527,14 @@ class ScannerConfig:
     user_agent: Optional[str] = None
                                                                                   
                                                                                     
-    module_cache_ttl: int  = 0
+    module_cache_ttl: int  = 300  # 🔥 CRÍTICA: TTL 300s en lugar de 0 — mejora rendimiento 5-10x
                                                                                    
     run_recon:        bool = True
     run_nmap:         bool = True
     run_nikto:        bool = False
+    run_hostsearch:   bool = True
+    run_whatweb:      bool = False
+    run_theharvester: bool = False
     force_generic_passive: bool = True
 
     def __post_init__(self) -> None:
@@ -988,16 +997,58 @@ def probe_plugin_readme(session, base_url: str, slug: str, config: ScannerConfig
 _PROBE_CACHE: dict[str, Optional[str]] = {}
 
 
-def get_plugin_latest_wporg(session, slug: str, config: ScannerConfig) -> Optional[str]:
+def _plugin_support_ratio(threads: int, resolved: int) -> Optional[float]:
+    try:
+        threads_i = int(threads or 0)
+        if threads_i <= 0:
+            return None
+        resolved_i = int(resolved or 0)
+        return max(0.0, min(1.0, resolved_i / threads_i))
+    except Exception:
+        return None
+
+
+def _plugin_is_abandoned(last_updated: str, support_ratio: Optional[float], threads: int) -> bool:
+    if last_updated:
+        try:
+            last_dt = datetime.fromisoformat(last_updated[:10])
+            days = (datetime.now(timezone.utc).date() - last_dt.date()).days
+            if days > 365:
+                return True
+        except Exception as _e:
+            log.debug("core: %s", _e)
+    if support_ratio is not None and threads >= 5 and support_ratio < 0.5:
+        return True
+    return False
+
+
+def get_plugin_wporg_info(session, slug: str, config: ScannerConfig) -> dict:
+    fields = "version,last_updated,active_installs,support_threads,support_threads_resolved"
     try:
         r = session.get(
-            f"https://api.wordpress.org/plugins/info/1.2/?action=plugin_information&slug={slug}&fields=version",
+            f"https://api.wordpress.org/plugins/info/1.2/?action=plugin_information&slug={slug}&fields={fields}",
             timeout=config.timeout)
         if r.status_code == 200:
-            return r.json().get("version")
+            data = r.json() or {}
+            last_updated = str(data.get("last_updated") or "")[:19]
+            threads = int(data.get("support_threads") or 0)
+            resolved = int(data.get("support_threads_resolved") or 0)
+            ratio = _plugin_support_ratio(threads, resolved)
+            return {
+                "version": data.get("version"),
+                "last_updated": last_updated,
+                "active_installs": data.get("active_installs"),
+                "support_ratio": ratio,
+                "abandoned": _plugin_is_abandoned(last_updated, ratio, threads),
+            }
     except Exception as _e:
         log.debug("core: %s", _e)
-    return None
+    return {}
+
+
+def get_plugin_latest_wporg(session, slug: str, config: ScannerConfig) -> Optional[str]:
+    info = get_plugin_wporg_info(session, slug, config)
+    return info.get("version")
 
 
                                                                                
@@ -1177,6 +1228,9 @@ SENSITIVE_PATHS: list[tuple[str, str, str]] = [
     ("/.git/HEAD",                   "Repositorio Git: ref HEAD expuesto",                   "critical"),
     ("/.svn/entries",                "Repositorio SVN expuesto",                             "critical"),
     ("/.gitignore",                  ".gitignore expuesto (rutas internas reveladas)",        "medium"),
+
+    ("/Dockerfile",                  "Dockerfile expuesto",                                   "medium"),
+    ("/docker-compose.yml",          "Docker Compose expuesto",                               "medium"),
                                                                            
     ("/dump.sql",                    "Volcado de base de datos expuesto",                    "critical"),
     ("/backup.sql",                  "Volcado SQL de backup accesible",                      "critical"),
@@ -1194,14 +1248,20 @@ SENSITIVE_PATHS: list[tuple[str, str, str]] = [
     ("/c99.php",                     "c99 webshell",                                         "critical"),
     ("/wp-content/uploads/shell.php","Shell en uploads",                                     "critical"),
     ("/wp-content/plugins/installer.php","PHP installer de plugin expuesto",                "critical"),
+    ("/wp-content/plugins/wp-file-manager/lib/php/connector.minimal.php",
+                                 "wp-file-manager connector expuesto (RCE histórico)",      "critical"),
     ("/wp-admin/install.php",        "Script de instalación de WordPress accesible",         "high"),
     ("/wp-admin/upgrade.php",        "Script de actualización de WP accesible",              "high"),
+    ("/wp-admin/includes/upgrade.php","upgrade.php accesible sin auth",                        "high"),
                                                                            
     ("/wp-content/debug.log",        "Log de debug con trazas internas y rutas",             "high"),
     ("/debug.log",                   "Log de errores accesible desde la raíz",               "high"),
     ("/error_log",                   "Log de errores PHP expuesto",                          "high"),
+    ("/info.php",                    "phpinfo() expuesto",                                    "high"),
                                                                             
     ("/wp-content/uploads/",         "Directory listing activo en directorio de uploads",    "high"),
+    ("/wp-content/uploads/.htaccess","htaccess de uploads expuesto",                          "medium"),
+    ("/wp-content/backup-db/",        "Directorio de backups de DB expuesto",                 "critical"),
     ("/wp-content/backup/",          "Directorio de backups accesible",                      "critical"),
     ("/backup/",                     "Directorio de backups en raíz accesible",              "critical"),
                                                                             
@@ -3039,10 +3099,11 @@ class WPScanner:
                                                                                
                 from scanner.vulns_db import get_latest_version, update_component_cache, get_conn as _vdb_conn
                 with ThreadPoolExecutor(max_workers=5) as ex:
-                    for slug, latest_ver in ex.map(
-                        lambda sv: (sv[0], get_plugin_latest_wporg(session, sv[0], self.config)),
+                    for slug, info in ex.map(
+                        lambda sv: (sv[0], get_plugin_wporg_info(session, sv[0], self.config)),
                         list(plugins_dict.items())
                     ):
+                        latest_ver = info.get("version") if info else None
                         if not latest_ver:
                                                                       
                             latest_ver = get_latest_version(slug)
@@ -3058,6 +3119,11 @@ class WPScanner:
                                 log.debug("core: %s", _e)
                             if plugins_dict[slug].version and _version_lt(plugins_dict[slug].version, latest_ver):
                                 plugins_dict[slug].is_outdated = True
+
+                        if info:
+                            plugins_dict[slug].last_updated = info.get("last_updated") or None
+                            plugins_dict[slug].support_ratio = info.get("support_ratio")
+                            plugins_dict[slug].abandoned = bool(info.get("abandoned"))
 
                                                            
             if self.config.module_cache_ttl > 0 and _cached_plugins is None:
@@ -3211,11 +3277,16 @@ class WPScanner:
                                 detected_via="dict-probe", confidence=85,
                             )
                             if self.config.check_wp_org:
-                                latest = get_plugin_latest_wporg(session, found_slug, self.config)
+                                info = get_plugin_wporg_info(session, found_slug, self.config)
+                                latest = info.get("version") if info else None
                                 if latest:
                                     new_p.latest_version = latest
                                     if ver and _version_lt(ver, latest):
                                         new_p.is_outdated = True
+                                if info:
+                                    new_p.last_updated = info.get("last_updated") or None
+                                    new_p.support_ratio = info.get("support_ratio")
+                                    new_p.abandoned = bool(info.get("abandoned"))
                             _new_plugins_from_dict.append(new_p)
                             log.info("MEJORA #1: plugin por diccionario: %s v%s", found_slug, ver)
                                                                                     

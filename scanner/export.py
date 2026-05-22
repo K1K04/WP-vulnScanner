@@ -1382,6 +1382,14 @@ def generate_standalone_html(result: dict) -> bytes:
     plugins = result.get("plugins", [])
     users = result.get("users", [])
     exposed = result.get("exposed_files", [])
+    recon = result.get("recon", {}) or {}
+    deep_scan = result.get("deep_scan", {}) or {}
+    email_sec = recon.get("email_security", {}) or {}
+    hostsearch = recon.get("hostsearch", {}) or {}
+    dorks = recon.get("google_dorks") or []
+    whatweb = recon.get("whatweb", {}) or {}
+    harvester = recon.get("theharvester", {}) or {}
+    sitemap = deep_scan.get("sitemap", {}) or {}
     
                                  
     if risk_score >= 80:
@@ -1396,6 +1404,105 @@ def generate_standalone_html(result: dict) -> bytes:
     else:
         risk_color = "#2ED573"
         risk_bg = "#E8F8F5"
+
+    email_sec_html = ""
+    if email_sec:
+        if email_sec.get("error"):
+            email_sec_html = f"<p style='color:#e67e22'>{html_module.escape(email_sec.get('error',''))}</p>"
+        else:
+            spf = email_sec.get("spf", "")
+            spf_policy = email_sec.get("spf_policy", "")
+            dmarc = email_sec.get("dmarc", "")
+            dmarc_policy = email_sec.get("dmarc_policy", "")
+            dmarc_pct = email_sec.get("dmarc_pct", "")
+            dkim_sel = email_sec.get("dkim_selectors_found") or []
+            email_sec_html = f"""
+                <table>
+                    <thead><tr><th>SPF</th><th>DMARC</th><th>DKIM</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td>{html_module.escape(spf) if spf else 'No detectado'} {html_module.escape(spf_policy) if spf_policy else ''}</td>
+                            <td>{html_module.escape(dmarc) if dmarc else 'No detectado'} {('p=' + html_module.escape(dmarc_policy)) if dmarc_policy else ''} {('pct=' + html_module.escape(dmarc_pct)) if dmarc_pct else ''}</td>
+                            <td>{' '.join([html_module.escape(s) for s in dkim_sel]) if dkim_sel else 'Sin selectores comunes'}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            """
+
+    hostsearch_html = ""
+    if hostsearch:
+        if hostsearch.get("error") or hostsearch.get("skipped"):
+            reason = hostsearch.get("reason") or hostsearch.get("error") or "Hostsearch no disponible"
+            hostsearch_html = f"<p style='color:#e67e22'>{html_module.escape(reason)}</p>"
+        else:
+            subs = hostsearch.get("subdomains") or []
+            count = hostsearch.get("count") or len(subs)
+            sample = subs[:20]
+            hostsearch_html = (
+                f"<p>Subdominios historicos: <strong>{count}</strong></p>"
+                f"<div style='font-family:monospace;font-size:12px'>{'<br/>'.join(html_module.escape(s) for s in sample)}</div>"
+            )
+
+    dorks_html = ""
+    if dorks:
+        dorks_html = """<table>
+            <thead><tr><th>Dork</th><th>Riesgo</th></tr></thead>
+            <tbody>
+        """
+        for d in dorks[:12]:
+            dorks_html += (
+                "<tr>"
+                f"<td>{html_module.escape(d.get('dork',''))}</td>"
+                f"<td>{html_module.escape(d.get('risk',''))}</td>"
+                "</tr>"
+            )
+        dorks_html += "</tbody></table>"
+
+    whatweb_html = ""
+    if whatweb:
+        if whatweb.get("skipped"):
+            whatweb_html = f"<p>{html_module.escape(whatweb.get('reason','WhatWeb no disponible'))}</p>"
+        elif whatweb.get("error"):
+            whatweb_html = f"<p style='color:#e67e22'>{html_module.escape(whatweb.get('error',''))}</p>"
+        else:
+            plugins_ww = whatweb.get("plugins") or []
+            if plugins_ww:
+                whatweb_html = "<div style='font-family:monospace;font-size:12px'>" + "<br/>".join(
+                    html_module.escape(f"{p.get('name','')} {p.get('version','')}").strip()
+                    for p in plugins_ww[:30]
+                ) + "</div>"
+            else:
+                whatweb_html = "<p>Sin firmas detectadas</p>"
+
+    harvester_html = ""
+    if harvester:
+        if harvester.get("skipped"):
+            harvester_html = f"<p>{html_module.escape(harvester.get('reason','theHarvester no disponible'))}</p>"
+        elif harvester.get("error"):
+            harvester_html = f"<p style='color:#e67e22'>{html_module.escape(harvester.get('error',''))}</p>"
+        else:
+            emails = harvester.get("emails") or []
+            hosts = harvester.get("hosts") or []
+            harvester_html = (
+                f"<p>Emails: <strong>{len(emails)}</strong> · Hosts: <strong>{len(hosts)}</strong></p>"
+                f"<div style='font-family:monospace;font-size:12px'>{'<br/>'.join(html_module.escape(e) for e in emails[:10])}</div>"
+            )
+
+    sitemap_html = ""
+    if sitemap:
+        if not sitemap.get("found"):
+            sitemap_html = "<p>No se detecto sitemap publico</p>"
+        else:
+            sources = sitemap.get("sources") or []
+            sensitive = sitemap.get("sensitive_urls") or []
+            sample_urls = sitemap.get("sample_urls") or []
+            sitemap_html = (
+                f"<p>URLs totales: <strong>{sitemap.get('url_count', 0)}</strong></p>"
+                f"<p>Fuentes:<br/>{'<br/>'.join(html_module.escape(s) for s in sources)}</p>"
+                f"<p>URLs sensibles: <strong>{len(sensitive)}</strong></p>"
+                f"<div style='font-family:monospace;font-size:12px'>{'<br/>'.join(html_module.escape(u) for u in sensitive[:12])}</div>"
+                f"<p>Muestra:</p><div style='font-family:monospace;font-size:12px'>{'<br/>'.join(html_module.escape(u) for u in sample_urls[:12])}</div>"
+            )
     
     html_content = f"""<!DOCTYPE html>
 <html lang="es">
@@ -1601,14 +1708,20 @@ def generate_standalone_html(result: dict) -> bytes:
                         <tr>
                             <th>Nombre</th>
                             <th>Versión</th>
+                            <th>Última</th>
+                            <th>Actualizado</th>
                             <th>Estado</th>
+                            <th>Abandono</th>
                         </tr>
                     </thead>
                     <tbody>
                         {"".join(f'''<tr>
                             <td>{html_module.escape(p.get('name', p.get('slug', 'Desconocido')))}</td>
                             <td>{html_module.escape(p.get('version', '?'))}</td>
+                            <td>{html_module.escape(p.get('latest_version', '') or '')}</td>
+                            <td>{html_module.escape(str(p.get('last_updated', '') or ''))}</td>
                             <td><span class="{'outdated' if p.get('is_outdated') else 'updated'}">{'⚠️ Desactualizado' if p.get('is_outdated') else '✓ Actualizado'}</span></td>
+                            <td>{'⚠️ Abandonado' if p.get('abandoned') else '-'}</td>
                         </tr>''' for p in plugins[:20])}
                     </tbody>
                 </table>
@@ -1645,6 +1758,36 @@ def generate_standalone_html(result: dict) -> bytes:
                 </ul>
                 {f'<p><em>Se muestran los primeros 15 archivos. Total: {len(exposed)}</em></p>' if len(exposed) > 15 else ''}
             </div>''' if exposed else ''}
+
+            {f'''<div class="section">
+                <h3>✉️ Email Security (SPF/DMARC/DKIM)</h3>
+                {email_sec_html}
+            </div>''' if email_sec_html else ''}
+
+            {f'''<div class="section">
+                <h3>🛰️ Hostsearch (Hackertarget)</h3>
+                {hostsearch_html}
+            </div>''' if hostsearch_html else ''}
+
+            {f'''<div class="section">
+                <h3>🔎 Google Dorks (pasivo)</h3>
+                {dorks_html}
+            </div>''' if dorks_html else ''}
+
+            {f'''<div class="section">
+                <h3>🧪 WhatWeb</h3>
+                {whatweb_html}
+            </div>''' if whatweb_html else ''}
+
+            {f'''<div class="section">
+                <h3>🧭 theHarvester</h3>
+                {harvester_html}
+            </div>''' if harvester_html else ''}
+
+            {f'''<div class="section">
+                <h3>🧭 Sitemap & URLs</h3>
+                {sitemap_html}
+            </div>''' if sitemap_html else ''}
         </div>
         
         <div class="footer">
@@ -1689,6 +1832,15 @@ def generate_markdown(result: dict) -> bytes:
     lines.append(f"- **Plugins detectados:** {summary.get('plugins_found', 0)}")
     lines.append(f"- **Archivos expuestos:** {summary.get('exposed_files', 0)}")
     lines.append(f"- **Usuarios encontrados:** {summary.get('users_found', 0)}")
+
+    recon = result.get("recon", {}) or {}
+    deep_scan = result.get("deep_scan", {}) or {}
+    email_sec = recon.get("email_security", {}) or {}
+    hostsearch = recon.get("hostsearch", {}) or {}
+    dorks = recon.get("google_dorks") or []
+    whatweb = recon.get("whatweb", {}) or {}
+    harvester = recon.get("theharvester", {}) or {}
+    sitemap = deep_scan.get("sitemap", {}) or {}
     
                       
     vulns = result.get("vulnerabilities", [])
@@ -1711,7 +1863,81 @@ def generate_markdown(result: dict) -> bytes:
         lines.append("\n## Plugins Detectados")
         for p in plugins:
             is_outdated = " ⚠️" if p.get("is_outdated") else ""
-            lines.append(f"- **{p.get('name', p.get('slug', 'Desconocido'))}** ({p.get('version', '?')}){is_outdated}")
+            abandoned = " — ABANDONADO" if p.get("abandoned") else ""
+            last_updated = f" · upd {p.get('last_updated')}" if p.get("last_updated") else ""
+            lines.append(
+                f"- **{p.get('name', p.get('slug', 'Desconocido'))}** ({p.get('version', '?')}){is_outdated}{abandoned}{last_updated}"
+            )
+
+    if email_sec:
+        lines.append("\n## Email Security (SPF/DMARC/DKIM)")
+        if email_sec.get("error"):
+            lines.append(f"- Error: {email_sec.get('error')}")
+        else:
+            lines.append(f"- SPF: {email_sec.get('spf') or 'No detectado'}")
+            lines.append(f"- DMARC: {email_sec.get('dmarc') or 'No detectado'}")
+            dkim_sel = email_sec.get("dkim_selectors_found") or []
+            lines.append(f"- DKIM: {', '.join(dkim_sel) if dkim_sel else 'Sin selectores comunes'}")
+
+    if hostsearch:
+        lines.append("\n## Hostsearch (Hackertarget)")
+        if hostsearch.get("error") or hostsearch.get("skipped"):
+            lines.append(f"- {hostsearch.get('reason') or hostsearch.get('error') or 'Hostsearch no disponible'}")
+        else:
+            subs = hostsearch.get("subdomains") or []
+            count = hostsearch.get("count") or len(subs)
+            lines.append(f"- Subdominios historicos: {count}")
+            if subs:
+                lines.append("- Muestra:")
+                for sd in subs[:10]:
+                    lines.append(f"  - {sd}")
+
+    if dorks:
+        lines.append("\n## Google Dorks (pasivo)")
+        for d in dorks[:12]:
+            lines.append(f"- {d.get('dork','')} — {d.get('risk','')}")
+
+    if whatweb:
+        lines.append("\n## WhatWeb")
+        if whatweb.get("skipped"):
+            lines.append(f"- {whatweb.get('reason','WhatWeb no disponible')}")
+        elif whatweb.get("error"):
+            lines.append(f"- Error: {whatweb.get('error')}")
+        else:
+            plugins_ww = whatweb.get("plugins") or []
+            if plugins_ww:
+                for p in plugins_ww[:20]:
+                    name = p.get("name", "")
+                    ver = p.get("version", "")
+                    lines.append(f"- {name} {ver}".strip())
+            else:
+                lines.append("- Sin firmas detectadas")
+
+    if harvester:
+        lines.append("\n## theHarvester")
+        if harvester.get("skipped"):
+            lines.append(f"- {harvester.get('reason','theHarvester no disponible')}")
+        elif harvester.get("error"):
+            lines.append(f"- Error: {harvester.get('error')}")
+        else:
+            emails = harvester.get("emails") or []
+            hosts = harvester.get("hosts") or []
+            lines.append(f"- Emails: {len(emails)}")
+            lines.append(f"- Hosts: {len(hosts)}")
+
+    if sitemap:
+        lines.append("\n## Sitemap & URLs")
+        if not sitemap.get("found"):
+            lines.append("- No se detecto sitemap publico")
+        else:
+            lines.append(f"- URLs totales: {sitemap.get('url_count', 0)}")
+            sources = sitemap.get("sources") or []
+            if sources:
+                lines.append("- Fuentes:")
+                for src in sources:
+                    lines.append(f"  - {src}")
+            sensitive = sitemap.get("sensitive_urls") or []
+            lines.append(f"- URLs sensibles: {len(sensitive)}")
     
               
     users = result.get("users", [])

@@ -39,9 +39,7 @@ WORKDIR /build
 
 # Añadir repo de seguridad de Debian ANTES del upgrade para recibir los patches.
 # Esto asegura que libxml2, libgcrypt20, nghttp2 y tar se instalen parcheados.
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    echo "deb http://security.debian.org/debian-security ${DEBIAN_CODENAME}-security main" \
+RUN echo "deb http://security.debian.org/debian-security ${DEBIAN_CODENAME}-security main" \
         > /etc/apt/sources.list.d/debian-security.list \
  && apt-get update \
  && apt-get upgrade -y --no-install-recommends \
@@ -58,8 +56,7 @@ COPY requirements.txt .
 
 # CVE-2025-8869, CVE-2026-3219, CVE-2026-1703: pip < 25.1.0 vulnerable.
 # Forzar instalación de pip >= 26.1.0 antes de instalar dependencias.
-RUN --mount=type=cache,target=/root/.cache/pip \
-    python3 -m pip install --upgrade "pip>=26.1.0" \
+RUN python3 -m pip install --upgrade "pip>=26.1.0" \
  && pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 
@@ -101,9 +98,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 #   libgcrypt20    → CVE-2026-41989 (6.7 MED)
 #   libxml2        → CVE-2026-6732, CVE-2025-12863, CVE-2025-8732
 #   tar            → CVE-2025-45582 (4.1 MED)
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    echo "deb http://security.debian.org/debian-security ${DEBIAN_CODENAME}-security main" \
+RUN echo "deb http://security.debian.org/debian-security ${DEBIAN_CODENAME}-security main" \
         > /etc/apt/sources.list.d/debian-security.list \
  && apt-get update \
  && apt-get upgrade -y --no-install-recommends \

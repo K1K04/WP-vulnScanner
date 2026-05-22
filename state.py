@@ -85,7 +85,8 @@ else:
                                                                           
                                                             
 _legacy_scans_path = os.path.abspath(_DEFAULT_DB_PATH)
-if DB_PATH != _legacy_scans_path:
+_app_env = (os.environ.get("APP_ENV") or os.environ.get("FLASK_ENV") or "").strip().lower()
+if _app_env not in {"test", "testing"} and DB_PATH != _legacy_scans_path:
     _current_rows = _db_scan_rows(DB_PATH)
     _legacy_rows = _db_scan_rows(_legacy_scans_path)
     if _current_rows == 0 and _legacy_rows > 0:
@@ -138,6 +139,7 @@ def _int(val, default: int = 0, lo: int = 0, hi: int = 10_000) -> int:
 
 
                                                                                 
+DEBUG_MODE      = os.environ.get("DEBUG", "false").lower() == "true"
 VERIFY_SSL      = os.environ.get("VERIFY_SSL", "true").lower() != "false"
 if not VERIFY_SSL:
     log.warning(
@@ -153,9 +155,9 @@ API_KEY         = os.environ.get("API_KEY", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 GEMINI_API_KEY    = os.environ.get("GEMINI_API_KEY", "")
 
-RATE_LIMIT_ENABLED = _env_bool("RATE_LIMIT_ENABLED", False)
-SCAN_RATE_LIMIT = _env_int("SCAN_RATE_LIMIT", 0, min_val=0)
-API_RATE_LIMIT  = _env_int("API_RATE_LIMIT",  0, min_val=0)
+RATE_LIMIT_ENABLED = _env_bool("RATE_LIMIT_ENABLED", True)
+SCAN_RATE_LIMIT = _env_int("SCAN_RATE_LIMIT", 4, min_val=0)
+API_RATE_LIMIT  = _env_int("API_RATE_LIMIT",  10, min_val=0)
 MAX_CONCURRENT  = _env_int("MAX_CONCURRENT_SCANS", 5, min_val=1, max_val=50)
 SCAN_TIMEOUT_S  = _env_int("SCAN_TIMEOUT_SECONDS", 300, min_val=30, max_val=3600)
 
@@ -457,8 +459,13 @@ def require_api_key(f):
         current_key = getattr(_mod, "API_KEY", "")
         if not current_key:
             return f(*args, **kwargs)
+        auth_header = request.headers.get("Authorization", "")
+        bearer = ""
+        if auth_header.lower().startswith("bearer "):
+            bearer = auth_header.split(" ", 1)[1].strip()
         key = (
             request.headers.get("X-API-Key")
+            or bearer
             or request.args.get("api_key")
             or request.args.get("key")
         )

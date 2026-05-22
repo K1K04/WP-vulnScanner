@@ -136,6 +136,33 @@ function _dlUrl(path) {
   return `${path}${sep}api_key=${encodeURIComponent(key)}`;
 }
 
+function _hasApiKey() {
+  return Boolean((_IDX_API_KEY() || '').trim());
+}
+
+function _refreshDbUpdateActionState() {
+  const btn = document.getElementById('dbUpdateBtn');
+  const statusEl = document.getElementById('dbUpdateStatus');
+  if (!btn) return;
+  if (_hasApiKey()) {
+    btn.disabled = false;
+    btn.title = 'Actualizar base de datos ahora';
+    if (statusEl && statusEl.dataset.noKey === '1') {
+      statusEl.style.display = 'none';
+      statusEl.textContent = '';
+      statusEl.dataset.noKey = '0';
+    }
+  } else {
+    btn.disabled = true;
+    btn.title = 'Define API_KEY en Ajustes para actualizar la base de datos';
+    if (statusEl) {
+      statusEl.style.display = 'inline';
+      statusEl.innerHTML = '<span style="color:var(--amber)">⚠ Define API_KEY en Ajustes para habilitar actualización</span>';
+      statusEl.dataset.noKey = '1';
+    }
+  }
+}
+
 
 function _triggerDownload(url, filename) {
   try {
@@ -307,8 +334,20 @@ let _dbUpdatePoller = null;
 async function triggerDbUpdate() {
   const btn = document.getElementById('dbUpdateBtn');
   if (!btn) return;
+
+  if (!_hasApiKey()) {
+    _refreshDbUpdateActionState();
+    showToast('Define API_KEY en Ajustes para actualizar la BD', 'err');
+    return;
+  }
+
   try {
     const st = await apiFetch('/api/db-update/status');
+    if (st.status === 401 || st.status === 403) {
+      showToast('API key inválida. Revisa Ajustes.', 'err');
+      _refreshDbUpdateActionState();
+      return;
+    }
     const sd = await st.json();
     if (sd.running) {
       _startDbUpdatePolling();
@@ -324,9 +363,28 @@ async function triggerDbUpdate() {
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({source:'all'})
     });
-    const d = await res.json();
-    if (d.error && res.status !== 409) {
-      btn.textContent = '✗ Error: ' + (d.error||'');
+
+    let d = {};
+    try { d = await res.json(); } catch (_) { d = {}; }
+
+    if (res.status === 401 || res.status === 403) {
+      btn.textContent = '✗ API key inválida';
+      showToast('API key inválida o sin permisos para /api/db-update', 'err');
+      setTimeout(() => {
+        btn.textContent = '↻ Actualizar BD';
+        _refreshDbUpdateActionState();
+      }, 3500);
+      return;
+    }
+
+    if (res.status === 409 || d.status === 'already_running') {
+      _startDbUpdatePolling();
+      return;
+    }
+
+    if (!res.ok || d.error) {
+      const msg = d.error || `HTTP ${res.status}`;
+      btn.textContent = '✗ Error: ' + msg;
       setTimeout(() => { btn.textContent = '↻ Actualizar BD'; btn.disabled = false; }, 4000);
       return;
     }
@@ -346,6 +404,9 @@ function _startDbUpdatePolling() {
   _dbUpdatePoller = setInterval(async () => {
     try {
       const r = await apiFetch('/api/db-update/status');
+      if (r.status === 401 || r.status === 403) {
+        throw new Error('unauthorized');
+      }
       const s = await r.json();
       dots = (dots + 1) % 4;
       const dotStr = '.'.repeat(dots + 1);
@@ -375,8 +436,25 @@ function _startDbUpdatePolling() {
       clearInterval(_dbUpdatePoller);
       _dbUpdatePoller = null;
       if (btn) { btn.textContent = '↻ Actualizar BD'; btn.disabled = false; }
+      _refreshDbUpdateActionState();
     }
   }, 1800);
+}
+
+function openLegalNoticeModal() {
+  const m = document.getElementById('legalNoticeModal');
+  if (!m) return;
+  m.style.display = 'grid';
+  try {
+    const closeBtn = document.getElementById('legalNoticeCloseBtn');
+    if (closeBtn) closeBtn.focus();
+  } catch(_) {}
+}
+
+function closeLegalNoticeModal() {
+  const m = document.getElementById('legalNoticeModal');
+  if (!m) return;
+  m.style.display = 'none';
 }
 let _histOffset = 0;
 const _HIST_LIMIT = 20;
@@ -448,7 +526,14 @@ async function loadHistory(reset) {
   }
 }
 
-function loadHistoryMore() { loadHistory(false); }
+function loadHistoryMore() {
+  const body = _el('historyBody');
+  if (body && !body.classList.contains('open')) {
+    toggleHistory();
+    return;
+  }
+  loadHistory(false);
+}
 
 let _histSearchTimer = null;
 function _histSearchDebounce() {
@@ -1213,6 +1298,7 @@ function showResults(r) {
                (ds.woocommerce?.exposed_paths?.length || 0) +
                (ds.changelog?.found?.length || 0) +
                (ds.ajax_nopriv?.exposed_actions?.length || 0) +
+               (ds.sitemap?.sensitive_urls?.length || 0) +
                (ds.login_security?.username_enumerable ? 1 : 0) +
                (ds.pingback?.ssrf_risk ? 1 : 0);
     tbDeep.textContent = n;
@@ -1252,11 +1338,13 @@ function toggleAcc(id) {
 function compCard(p, icon) {
   const c = (p && typeof p === 'object') ? p : { slug: String(p || 'desconocido') };
   const isOutdated = !!c.is_outdated;
+  const isAbandoned = !!c.abandoned;
   const name = _esc(c.slug || 'desconocido');
   const iconCode = _esc(String(icon || 'CMP').toUpperCase().slice(0, 4));
   const version = _esc(c.version || '?');
   const latestInfo = c.latest_version ? ` -> <span class="comp-latest">${_esc(c.latest_version)}</span>` : '';
   const detectedVia = _esc(c.detected_via || 'deteccion heuristica');
+  const lastUpdated = c.last_updated ? _esc(String(c.last_updated).slice(0, 10)) : '';
   const confRaw = Number(c.confidence);
   const conf = Number.isFinite(confRaw) ? Math.max(0, Math.min(100, Math.round(confRaw))) : null;
   const confTag = conf === null ? 'conf. n/d' : `conf. ${conf}%`;
@@ -1278,6 +1366,8 @@ function compCard(p, icon) {
       <div class="comp-tags">
         <span class="comp-tag">${detectedVia}</span>
         <span class="comp-tag">${confTag}</span>
+        ${isAbandoned ? '<span class="comp-tag" style="color:var(--red);border-color:rgba(255,71,87,.35);background:rgba(255,71,87,.12)">ABANDONADO</span>' : ''}
+        ${lastUpdated ? `<span class="comp-tag" style="color:var(--text-3)">upd ${lastUpdated}</span>` : ''}
       </div>
       ${conf === null ? '' : `<div class="conf-bar"><div class="conf-fill" style="width:${conf}%"></div></div>`}
     </div>
@@ -2531,6 +2621,60 @@ function buildReconTab(r) {
     </div>`;
   }
   html += _reconSection('🌐', 'Registros DNS', dnsBody);
+
+  const emailSec = rec.email_security || {};
+  let emailBody = '';
+  if (emailSec.error) {
+    emailBody = `<p style="color:var(--amber);font-size:12px">⚠ ${e(emailSec.error)}</p>`;
+  } else {
+    const spf = emailSec.spf || '';
+    const spfPolicy = emailSec.spf_policy ? `(${e(emailSec.spf_policy)})` : '';
+    const dmarc = emailSec.dmarc || '';
+    const dmarcPolicy = emailSec.dmarc_policy ? `p=${e(emailSec.dmarc_policy)}` : '';
+    const dmarcPct = emailSec.dmarc_pct ? `pct=${e(emailSec.dmarc_pct)}` : '';
+    const dkim = Array.isArray(emailSec.dkim_selectors_found) ? emailSec.dkim_selectors_found : [];
+    emailBody = `<div class="wp-grid">
+      <div class="wp-item"><div class="wi-label">SPF</div><div class="wi-value">${spf ? `<code>${e(spf)}</code> ${spfPolicy}` : '<span style="color:var(--text-3)">No detectado</span>'}</div></div>
+      <div class="wp-item"><div class="wi-label">DMARC</div><div class="wi-value">${dmarc ? `<code>${e(dmarc)}</code> ${dmarcPolicy} ${dmarcPct}` : '<span style="color:var(--text-3)">No detectado</span>'}</div></div>
+      <div class="wp-item"><div class="wi-label">DKIM</div><div class="wi-value">${dkim.length ? dkim.map(s => `<code>${e(s)}</code>`).join(' ') : '<span style="color:var(--text-3)">Sin selectores comunes</span>'}</div></div>
+    </div>`;
+  }
+  html += _reconSection('✉️', 'Email Security (SPF/DMARC/DKIM)', emailBody);
+
+  const hostsearch = rec.hostsearch || {};
+  let hsBody = '';
+  if (hostsearch.error || hostsearch.skipped) {
+    hsBody = `<p style="color:var(--amber);font-size:12px">⚠ ${e(hostsearch.reason || hostsearch.error || 'Hostsearch no disponible')}</p>`;
+  } else if (!hostsearch.subdomains || !hostsearch.subdomains.length) {
+    hsBody = '<p style="color:var(--text-3);font-size:12px">Sin subdominios históricos detectados</p>';
+  } else {
+    hsBody = `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">
+      ${hostsearch.subdomains.slice(0, 60).map(sd =>
+        `<span style="font-family:var(--mono);font-size:10px;background:var(--bg-4);border:1px solid var(--border);border-radius:3px;padding:2px 8px;color:var(--cyan)">${e(sd)}</span>`
+      ).join('')}
+    </div><div style="font-size:10px;color:var(--text-3)">Total: ${hostsearch.count || hostsearch.subdomains.length}</div>`;
+  }
+  html += _reconSection('🛰️', 'Hostsearch (Hackertarget)', hsBody);
+
+  const dorks = Array.isArray(rec.google_dorks) ? rec.google_dorks : [];
+  let dorkBody = '';
+  if (!dorks.length) {
+    dorkBody = '<p style="color:var(--text-3);font-size:12px">No hay dorks generados</p>';
+  } else {
+    dorkBody = `<div style="display:grid;gap:6px">
+      ${dorks.map(d => {
+        const link = d.url ? `<a href="${e(d.url)}" target="_blank" style="color:var(--teal);text-decoration:none">Buscar ↗</a>` : '';
+        return `<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-4)">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:11px;color:var(--text)"><code>${e(d.dork || '')}</code></div>
+            <div style="font-size:10px;color:var(--text-3)">${e(d.risk || '')}</div>
+          </div>
+          <div style="font-size:10px">${link}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+  html += _reconSection('🔎', 'Google Dorks (pasivo)', dorkBody);
   const nmap = rec.nmap || {};
   let nmapBody = '';
   if (nmap.error) {
@@ -2591,6 +2735,41 @@ function buildReconTab(r) {
     if (crt.total_certs) crtBody += `<div style="font-size:10px;color:var(--text-3)">Certificados analizados: ${crt.total_certs} · Subdominios únicos: ${crt.subdomains.length}</div>`;
   }
   html += _reconSection('📜', 'Certificate Transparency (crt.sh)', crtBody);
+  const ww = rec.whatweb || {};
+  let wwBody = '';
+  if (ww.skipped) {
+    wwBody = `<p style="color:var(--text-3);font-size:12px">${e(ww.reason || 'whatweb no disponible')}</p>`;
+  } else if (ww.error) {
+    wwBody = `<p style="color:var(--amber);font-size:12px">⚠ ${e(ww.error)}</p>`;
+  } else if (!ww.plugins || !ww.plugins.length) {
+    wwBody = '<p style="color:var(--text-3);font-size:12px">Sin firmas detectadas por WhatWeb</p>';
+  } else {
+    wwBody = `<div style="display:flex;flex-wrap:wrap;gap:5px">
+      ${ww.plugins.slice(0, 50).map(p =>
+        `<span style="font-family:var(--mono);font-size:10px;background:var(--bg-4);border:1px solid var(--border);border-radius:3px;padding:2px 8px;color:var(--teal)">${e(p.name)}${p.version ? ' ' + e(p.version) : ''}</span>`
+      ).join('')}
+    </div>`;
+  }
+  html += _reconSection('🧪', 'WhatWeb', wwBody);
+
+  const hv = rec.theharvester || {};
+  let hvBody = '';
+  if (hv.skipped) {
+    hvBody = `<p style="color:var(--text-3);font-size:12px">${e(hv.reason || 'theHarvester no disponible')}</p>`;
+  } else if (hv.error) {
+    hvBody = `<p style="color:var(--amber);font-size:12px">⚠ ${e(hv.error)}</p>`;
+  } else {
+    const emails = Array.isArray(hv.emails) ? hv.emails : [];
+    const hosts = Array.isArray(hv.hosts) ? hv.hosts : [];
+    hvBody = `<div style="font-size:11px;color:var(--text-2)">Emails: <strong>${emails.length}</strong> · Hosts: <strong>${hosts.length}</strong></div>`;
+    if (emails.length) {
+      hvBody += `<div style="margin-top:6px;font-size:10px;color:var(--amber)">${emails.slice(0, 6).map(em => `<code>${e(em)}</code>`).join(' ')}</div>`;
+    }
+    if (hosts.length) {
+      hvBody += `<div style="margin-top:6px;font-size:10px;color:var(--text-3)">${hosts.slice(0, 6).map(h => `<code>${e(h)}</code>`).join(' ')}</div>`;
+    }
+  }
+  html += _reconSection('🧭', 'theHarvester', hvBody);
   const sh = rec.shodan || {};
   let shodanBody = '';
   if (sh.skipped) {
@@ -4143,6 +4322,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (_apiKeyMeta && _apiKeyMeta.value) {
     try { localStorage.setItem('wpvs_api_key', _apiKeyMeta.value); } catch(e) {}
   }
+  _refreshDbUpdateActionState();
   const urlInput = document.getElementById('urlInput');
   if (urlInput) {
     urlInput.addEventListener('keydown', e => {
@@ -4195,6 +4375,15 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('scanBtn')?.addEventListener('click', startScan);
   document.getElementById('dbUpdateBtn')?.addEventListener('click', triggerDbUpdate);
   document.getElementById('legalCheck')?.addEventListener('change', e => onLegalChange(e.target));
+  document.getElementById('legalInfoBtn')?.addEventListener('click', openLegalNoticeModal);
+  document.getElementById('legalNoticeCloseBtn')?.addEventListener('click', closeLegalNoticeModal);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const m = document.getElementById('legalNoticeModal');
+        if (m && m.style.display !== 'none') closeLegalNoticeModal();
+      }
+    });
   document.getElementById('onboardDismissBtn')?.addEventListener('click', dismissOnboard);
   document.getElementById('mapCloseBtn')?.addEventListener('click', closeAttackMap);
   document.getElementById('newScanBtn')?.addEventListener('click', newScan);
@@ -4450,6 +4639,26 @@ function buildDeepScanTab(r) {
     });
     html += section('Changelog & Versiones', '📋', content);
   }
+  const sm = ds.sitemap || {};
+  {
+    let content = '';
+    if (!sm.found) {
+      content = noIssues('No se detecto sitemap publico');
+    } else {
+      const sources = (sm.sources || []).map(u => `<code style="font-family:var(--mono)">${_esc(u)}</code>`).join('<br>');
+      content += `<div style="font-size:11px;color:var(--text2);margin-bottom:6px">URLs totales: <strong>${sm.url_count || 0}</strong></div>`;
+      if (sources) {
+        content += `<div style="font-size:10px;color:var(--text3);margin-bottom:6px">Fuentes:<br>${sources}</div>`;
+      }
+      if ((sm.sensitive_urls || []).length) {
+        content += itemRow('medium', `URLs sensibles detectadas: ${sm.sensitive_urls.slice(0, 4).map(u => `<code>${_esc(u)}</code>`).join(' ')}`);
+      }
+      if ((sm.sample_urls || []).length) {
+        content += `<div style="font-size:10px;color:var(--text3);margin-top:6px">Muestra:<br>${sm.sample_urls.slice(0, 4).map(u => _esc(u)).join('<br>')}</div>`;
+      }
+    }
+    html += section('Sitemap & URLs', '🧭', content);
+  }
   const ajax = ds.ajax_nopriv || {};
   {
     let content = '';
@@ -4545,83 +4754,6 @@ function buildComplianceTab(r) {
       <div class="compliance-state-msg">${_esc(comp.error)}</div>
     </div>`;
   }
-
-  // ✅ NUEVA GUÍA DE REGULACIONES CON PENAS
-  let html = `<div style="background:var(--bg-4);border-radius:8px;padding:14px;margin-bottom:16px;border-left:5px solid var(--blue)">
-    <div style="font-weight:700;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:6px">
-      <span style="font-size:16px">📋</span> Marcos de Cumplimiento — Penas por Incumplimiento
-    </div>
-    <div style="font-size:11px;color:var(--text-2);line-height:1.6">
-      Cada hallazgo está mapeado a regulaciones que pueden resultar en sanciones. 
-      <strong style="color:var(--text)">Lee las penas abajo para entender el impacto</strong>.
-    </div>
-  </div>`;
-
-  // ✅ TABLA DE REGULACIONES CON PENAS
-  const regulationsGuide = `
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-bottom:16px">
-      <!-- GDPR -->
-      <div class="compliance-penalty-box">
-        <div class="compliance-penalty-title">🇪🇺 GDPR (UE)</div>
-        <div class="compliance-penalty-content">
-          <strong>Aplicable a:</strong> Sitios con usuarios en UE, datos personales<br>
-          <strong style="color:var(--red)">⚠️ PENAS:</strong>
-          <ul class="compliance-penalty-list">
-            <li>Multas hasta <strong>€20,000,000</strong> o <strong>4% ingresos anuales</strong></li>
-            <li>Ejemplo: Sitio €10M ingresos = €400k multa mínima</li>
-            <li>Incidentes: Notificar en <strong>72 horas</strong></li>
-            <li>Consentimiento: Acción de usuario, no pre-checked</li>
-          </ul>
-        </div>
-      </div>
-      
-      <!-- PCI-DSS -->
-      <div class="compliance-penalty-box">
-        <div class="compliance-penalty-title">💳 PCI-DSS</div>
-        <div class="compliance-penalty-content">
-          <strong>Aplicable a:</strong> Procesamiento de tarjetas de crédito<br>
-          <strong style="color:var(--red)">⚠️ PENAS:</strong>
-          <ul class="compliance-penalty-list">
-            <li>Multas hasta <strong>$100,000 USD / mes</strong></li>
-            <li>Pérdida capacidad procesar pagos (VISA/Mastercard)</li>
-            <li>Responsabilidad civil sin límite por fraude</li>
-            <li>Breach: Pérdida del 2-4% en transacciones</li>
-          </ul>
-        </div>
-      </div>
-      
-      <!-- OWASP -->
-      <div class="compliance-penalty-box">
-        <div class="compliance-penalty-title">🛡️ OWASP Top 10</div>
-        <div class="compliance-penalty-content">
-          <strong>Aplicable a:</strong> Todos los sitios (estándar de facto)<br>
-          <strong style="color:var(--orange)">⚠️ RESPONSABILIDAD CIVIL:</strong>
-          <ul class="compliance-penalty-list">
-            <li>No cumplir OWASP = <strong>negligencia probada</strong></li>
-            <li>Demandas por pérdidas: €100k - €1M+ por hackeo</li>
-            <li>Más vulnerable si hay SQLi, RCE o XSS sin parchear</li>
-            <li>Ej: SQL Injection = responsabilidad de 100% a cliente</li>
-          </ul>
-        </div>
-      </div>
-      
-      <!-- ISO 27001 -->
-      <div class="compliance-penalty-box">
-        <div class="compliance-penalty-title">📊 ISO 27001</div>
-        <div class="compliance-penalty-content">
-          <strong>Aplicable a:</strong> Empresas certificadas o requeridas<br>
-          <strong style="color:var(--amber)">⚠️ CONSECUENCIAS:</strong>
-          <ul class="compliance-penalty-list">
-            <li>Pérdida de certificación = exclusión de licitaciones</li>
-            <li>Primas de seguro aumentan 300-500%</li>
-            <li>Multas contractuales con clientes: sin límite</li>
-            <li>Reputación: pérdida de confianza de partners</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  `;
-  html += regulationsGuide;
 
   if (!Object.keys(byFw).length) {
     const vulns = r.vulnerabilities || [];
@@ -4857,7 +4989,9 @@ Reglas obligatorias: \
 2) Si un dato no está en el informe, indica explícitamente "No verificado en el escaneo". \
 3) Evita acciones destructivas o ambiguas (renombrar/borrar masivo, chmod globales peligrosos). Prioriza mitigaciones seguras, reversibles y verificables. \
 4) Los comandos deben ir en bloques \`\`\`bash\`\`\` válidos, nunca como texto roto ni pseudo-comandos. \
-5) No uses placeholders genéricos tipo /path/to sin explicar que debe sustituirse por una ruta real.`;
+5) No uses placeholders genéricos tipo /path/to sin explicar que debe sustituirse por una ruta real. \
+6) No agregues prefacios ni conclusiones fuera del formato solicitado. \
+7) Si no hay hallazgos para una sección, escribe "- Sin hallazgos aplicables."`;
   const vulns     = r.vulnerabilities || [];
   const kevVulns  = vulns.filter(v => v.kev);
   const critVulns = vulns.filter(v => v.severity === 'critical');
@@ -4943,7 +5077,7 @@ ${compLines}
 ═══════════════════════════════════════════════════════
 INSTRUCCIONES PARA EL PLAN:
 ═══════════════════════════════════════════════════════
-Genera el plan con EXACTAMENTE este formato. Cada acción debe ser específica para ESTE sitio (usa los nombres reales de plugins, CVEs, versiones y rutas del informe):
+Genera el plan con EXACTAMENTE este formato. Cada acción debe ser específica para ESTE sitio (usa los nombres reales de plugins, CVEs, versiones y rutas del informe). Si una sección no aplica, incluye una única línea "- Sin hallazgos aplicables." y no inventes nada:
 
 ## 🚨 CRÍTICO — Actuar ahora mismo (riesgo de compromiso activo)
 Incluye únicamente vulnerabilidades CRITICAL o CISA-KEV. Para cada una:
@@ -4980,6 +5114,8 @@ REGLAS DE CALIDAD DE SALIDA (OBLIGATORIAS):
 - No mezcles comando y explicación en la misma línea.
 - No propongas versiones "objetivo" si no aparecen en el informe; en su lugar indica cómo verificarlas.
 - Si detectas archivos sensibles expuestos, incluye primero mitigación inmediata (bloqueo de acceso + rotación de secretos) antes de cambios estructurales.
+- No agregues secciones nuevas ni cambies los títulos solicitados.
+- Ordena las acciones dentro de cada sección de mayor a menor riesgo.
 `;
 
   const FINAL_PROMPT = `${PROMPT}${QUALITY_RULES}`;

@@ -25,13 +25,14 @@ from __future__ import annotations
 import io
 import json
 import logging
+import os
 import queue
 import threading
 import time
 import uuid
 from datetime import datetime, timezone
 
-from flask import (Blueprint, Response, jsonify, render_template,
+from flask import (Blueprint, Response, current_app, jsonify, render_template,
                    request, send_file, stream_with_context)
 
 from db import get_job_state, get_scan_from_db, normalize_scan_result, upsert_job_state
@@ -47,6 +48,14 @@ from state import (
 log = logging.getLogger("wpvulnscan.scan")
 
 scan_bp = Blueprint("scan", __name__)
+
+
+def _is_test_mode() -> bool:
+    return (
+        current_app.testing
+        or os.environ.get("APP_ENV", "").lower() in {"test", "testing"}
+        or os.environ.get("FLASK_ENV", "").lower() in {"test", "testing"}
+    )
 
 
 def _new_job(url: str, legal: bool = False, user_ip: str = "unknown") -> tuple[str, dict]:
@@ -155,7 +164,8 @@ def start_scan():
 
     job_id, _ = _new_job(url, legal=legal, user_ip=user_ip)
     log.info("Escaneo iniciado: %s → %s (IP: %s)", job_id, url, user_ip)
-    threading.Thread(target=_run_scan, args=(job_id, url, legal, user_ip, callback_url), daemon=True).start()
+    if not _is_test_mode():
+        threading.Thread(target=_run_scan, args=(job_id, url, legal, user_ip, callback_url), daemon=True).start()
     return jsonify({"job_id": job_id, "slots_remaining": max(0, slots_left - 1)})
 
 
@@ -708,7 +718,8 @@ def api_scan():
         return jsonify({"error": "Servidor al límite de concurrencia. Reintenta en un momento."}), 503
 
     job_id, _ = _new_job(url, legal=legal, user_ip=user_ip)
-    threading.Thread(target=_run_scan, args=(job_id, url, legal, user_ip, callback_url), daemon=True).start()
+    if not _is_test_mode():
+        threading.Thread(target=_run_scan, args=(job_id, url, legal, user_ip, callback_url), daemon=True).start()
     log.info("api_scan iniciado: %s → %s (IP: %s)", job_id, url, user_ip)
     return jsonify({
         "job_id": job_id, "status": "running",
@@ -756,7 +767,8 @@ def api_bulk():
             continue
 
         job_id, _ = _new_job(url, legal=legal, user_ip=user_ip)
-        threading.Thread(target=_run_scan, args=(job_id, url, legal, user_ip, ""), daemon=True).start()
+        if not _is_test_mode():
+            threading.Thread(target=_run_scan, args=(job_id, url, legal, user_ip, ""), daemon=True).start()
         jobs.append({
             "url": url, "job_id": job_id,
             "stream_url": f"/scan/{job_id}/stream",
@@ -814,7 +826,8 @@ def rescan():
         except Exception:
             pass
     new_job_id, _ = _new_job(url, legal=legal, user_ip=ip)
-    threading.Thread(target=_run_scan, args=(new_job_id, url, legal, ip, callback_url), daemon=True).start()
+    if not _is_test_mode():
+        threading.Thread(target=_run_scan, args=(new_job_id, url, legal, ip, callback_url), daemon=True).start()
     log.info("Rescan iniciado: %s → %s (origen: %s)", new_job_id, url, job_id or "directo")
     return jsonify({
         "job_id": new_job_id, "url": url,

@@ -24,10 +24,11 @@ import socket
 import subprocess
 import time
 import json
+import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 
 import requests
 
@@ -252,6 +253,236 @@ def run_dns(domain: str, timeout: int = 6) -> dict:
                     pass
 
     return result
+
+
+def _resolve_txt_records(domain: str, timeout: int = 6) -> list[str]:
+    try:
+        import dns.resolver
+
+        ans = dns.resolver.resolve(domain, "TXT", lifetime=timeout)
+        return [a.to_text().strip('"') for a in ans]
+    except ImportError:
+        pass
+    except Exception as _e:
+        try:
+            log.debug("_resolve_txt_records: %s", _e)
+        except Exception:
+            pass
+
+    dig_bin = shutil.which("dig")
+    if not dig_bin:
+        return []
+    try:
+        proc = subprocess.run(
+            [dig_bin, "+short", domain, "TXT"],
+            capture_output=True, text=True, timeout=timeout
+        )
+        lines = [l.strip().strip('"') for l in proc.stdout.splitlines() if l.strip()]
+        return lines
+    except Exception:
+        return []
+
+
+def analyze_email_security(dns_txt_records: list[str], domain: str, timeout: int = 6) -> dict:
+    if not domain:
+        return {
+            "spf": "",
+            "spf_policy": "",
+            "dmarc": "",
+            "dmarc_policy": "",
+            "dmarc_pct": "",
+            "dkim_selectors_found": [],
+        }
+    spf = next((r for r in dns_txt_records if "v=spf1" in r.lower()), "")
+    spf_policy = ""
+    if spf:
+        low = spf.lower()
+        if "-all" in low:
+            spf_policy = "fail"
+        elif "~all" in low:
+            spf_policy = "softfail"
+        elif "?all" in low:
+            spf_policy = "neutral"
+        elif "+all" in low:
+            spf_policy = "pass"
+
+    dmarc_records = _resolve_txt_records(f"_dmarc.{domain}", timeout=timeout)
+    dmarc = next((r for r in dmarc_records if "v=dmarc1" in r.lower()), "")
+    dmarc_policy = ""
+    dmarc_pct = ""
+    if dmarc:
+        pol_m = re.search(r"\bp=([a-z]+)", dmarc, re.I)
+        pct_m = re.search(r"\bpct=([0-9]+)", dmarc, re.I)
+        if pol_m:
+            dmarc_policy = pol_m.group(1).lower()
+        if pct_m:
+            dmarc_pct = pct_m.group(1)
+
+    selectors = [
+        "default", "google", "selector1", "selector2",
+        "k1", "k2", "s1", "s2", "mail", "smtp",
+    ]
+    dkim_found = []
+    for sel in selectors:
+        records = _resolve_txt_records(f"{sel}._domainkey.{domain}", timeout=timeout)
+        if any("v=dkim1" in r.lower() for r in records):
+            dkim_found.append(sel)
+
+    return {
+        "spf": spf,
+        "spf_policy": spf_policy,
+        "dmarc": dmarc,
+        "dmarc_policy": dmarc_policy,
+        "dmarc_pct": dmarc_pct,
+        "dkim_selectors_found": dkim_found,
+    }
+
+
+def run_hackertarget_hostsearch(domain: str, timeout: int = 8) -> dict:
+    if not domain:
+        return {"skipped": True, "reason": "Dominio no valido"}
+    try:
+        r = requests.get(
+            f"https://api.hackertarget.com/hostsearch/?q={domain}",
+            timeout=timeout,
+        )
+        text = r.text.strip()
+        if r.status_code != 200 or not text:
+            return {"error": f"HTTP {r.status_code}", "raw": text[:300]}
+        if "error" in text.lower():
+            return {"error": text[:300]}
+        subdomains = []
+        ips = []
+        for line in text.splitlines():
+            if "," not in line:
+                continue
+            host, ip = line.split(",", 1)
+            host = host.strip().lower()
+            ip = ip.strip()
+            if host and host not in subdomains:
+                subdomains.append(host)
+            if ip and ip not in ips:
+                ips.append(ip)
+        return {
+            "domain": domain,
+            "subdomains": subdomains[:120],
+            "ips": ips[:60],
+            "count": len(subdomains),
+        }
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def generate_google_dorks(domain: str) -> list[dict]:
+    if not domain:
+        return []
+    dorks = [
+        {"dork": f"site:{domain} filetype:sql", "risk": "DB backup expuesto"},
+        {"dork": f"site:{domain} filetype:log", "risk": "Logs expuestos"},
+        {"dork": f"site:{domain} inurl:wp-content/uploads filetype:php", "risk": "PHP en uploads"},
+        {"dork": f"site:{domain} \"index of\" wp-content", "risk": "Directory listing"},
+        {"dork": f"site:{domain} \"WordPress\"", "risk": "Confirmacion CMS"},
+        {"dork": f"\"{domain}\" password OR credentials site:pastebin.com", "risk": "Credenciales filtradas"},
+    ]
+    for d in dorks:
+        d["url"] = f"https://www.google.com/search?q={quote(d['dork'])}"
+    return dorks
+
+
+def _extract_json_line(text: str) -> dict:
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            return json.loads(line)
+        except Exception:
+            continue
+    try:
+        return json.loads(text)
+    except Exception:
+        return {}
+
+
+def run_whatweb(target_url: str, timeout: int = 30) -> dict:
+    whatweb_bin = shutil.which("whatweb")
+    if not whatweb_bin:
+        return {"skipped": True, "reason": "whatweb no instalado"}
+    try:
+        proc = subprocess.run(
+            [whatweb_bin, "--log-json=-", "--quiet", target_url],
+            capture_output=True, text=True, timeout=timeout
+        )
+        raw = (proc.stdout or "").strip()
+        data = _extract_json_line(raw)
+        plugins = []
+        if isinstance(data, dict):
+            plug = data.get("plugins") or {}
+            if isinstance(plug, dict):
+                for name, info in list(plug.items())[:80]:
+                    if isinstance(info, dict):
+                        versions = info.get("version") or info.get("versions") or []
+                        if isinstance(versions, str):
+                            versions = [versions]
+                        plugins.append({
+                            "name": name,
+                            "version": versions[0] if versions else "",
+                        })
+                    else:
+                        plugins.append({"name": name, "version": ""})
+        return {
+            "target": target_url,
+            "plugins": plugins,
+            "raw": raw[:2000],
+        }
+    except subprocess.TimeoutExpired:
+        return {"error": f"Timeout whatweb ({timeout}s)"}
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def run_theharvester(domain: str, sources: str = "bing,crtsh,dnsdumpster", timeout: int = 60) -> dict:
+    bin_ = shutil.which("theHarvester")
+    if not bin_:
+        return {"skipped": True, "reason": "theHarvester no instalado"}
+    if not domain:
+        return {"skipped": True, "reason": "Dominio no valido"}
+    tmp_fd, tmp_path = tempfile.mkstemp(prefix="harvest_", suffix="")
+    os.close(tmp_fd)
+    try:
+        proc = subprocess.run(
+            [bin_, "-d", domain, "-b", sources, "-f", tmp_path],
+            capture_output=True, text=True, timeout=timeout
+        )
+        json_path = tmp_path + ".json"
+        data = {}
+        if os.path.exists(json_path):
+            with open(json_path, "r", encoding="utf-8", errors="ignore") as fh:
+                try:
+                    data = json.load(fh)
+                except Exception:
+                    data = {}
+        return {
+            "domain": domain,
+            "emails": data.get("emails") or [],
+            "hosts": data.get("hosts") or data.get("hosts_ips") or [],
+            "sources": sources,
+            "raw": (proc.stdout or "")[:1500],
+        }
+    except subprocess.TimeoutExpired:
+        return {"error": f"Timeout theHarvester ({timeout}s)"}
+    except Exception as exc:
+        return {"error": str(exc)}
+    finally:
+        for ext in (".json", ".xml"):
+            try:
+                os.remove(tmp_path + ext)
+            except Exception:
+                pass
+        try:
+            os.remove(tmp_path)
+        except Exception:
+            pass
 
 
                                                                                 
@@ -735,12 +966,17 @@ def run_passive_recon(
         "rdns":      "",
         "whois":     {},
         "dns":       {},
+        "email_security": {},
         "geoip":     {},
         "asn":       {},
         "crtsh":     {},
+        "hostsearch": {},
         "nmap":      {},
         "nikto":     {},
         "shodan":    {},
+        "whatweb":   {},
+        "theharvester": {},
+        "google_dorks": [],
         "duration":  0,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
@@ -784,10 +1020,16 @@ def run_passive_recon(
         "crtsh":  lambda: run_crtsh(domain),
         "shodan": lambda: run_shodan(ip, shodan_key) if ip else {},
     }
+    if getattr(config, "run_hostsearch", True):
+        tasks["hostsearch"] = lambda: run_hackertarget_hostsearch(domain)
     if run_nmap_scan:
         tasks["nmap"] = lambda: run_nmap(ip or hostname)
     if run_nikto_scan:
         tasks["nikto"] = lambda: run_nikto(target_url)
+    if getattr(config, "run_whatweb", False):
+        tasks["whatweb"] = lambda: run_whatweb(target_url)
+    if getattr(config, "run_theharvester", False):
+        tasks["theharvester"] = lambda: run_theharvester(domain)
 
     with ThreadPoolExecutor(max_workers=6) as ex:
         futures = {ex.submit(fn): key for key, fn in tasks.items()}
@@ -804,6 +1046,12 @@ def run_passive_recon(
                 result[key] = {"error": str(exc)}
 
     result["duration"] = round(time.time() - start, 2)
+    try:
+        dns_txt = (result.get("dns") or {}).get("TXT") or []
+        result["email_security"] = analyze_email_security(dns_txt, domain)
+    except Exception as exc:
+        result["email_security"] = {"error": str(exc)}
+    result["google_dorks"] = generate_google_dorks(domain)
     log.info(
         "recon pasivo completado para %s en %.2fs (ip=%s)",
         domain or hostname,

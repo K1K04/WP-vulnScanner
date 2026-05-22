@@ -217,7 +217,6 @@
   <link rel="stylesheet" href="/static/app.css?v=20260429">
   <link rel="stylesheet" href="/static/pro_theme.css?v=20260427c">
   <link rel="stylesheet" href="/static/ux-enhancements-v2.css?v=20260514">
-  <link rel="stylesheet" href="/static/compliance-enhancements.css?v=20260514">
   {% if api_key %}<input type="hidden" id="__wpvs_api_key" value="{{ api_key | e }}">{% endif %}
   {% if permalink_job_id %}<input type="hidden" id="__wpvs_permalink" value="{{ permalink_job_id | e }}">{% endif %}
   {% if permalink_error %}<input type="hidden" id="__wpvs_permalink_error" value="{{ permalink_error | e }}">{% endif %}
@@ -272,6 +271,17 @@
   </div>
 </nav>
 
+{% if security_warnings %}
+<div style="margin:14px 0 12px;padding:12px 14px;border:1px solid var(--amber);border-left:4px solid var(--amber);border-radius:var(--radius);background:rgba(255,193,74,.12)">
+  <div style="font-weight:700;font-size:12px;color:var(--amber)">⚠ Configuración insegura detectada</div>
+  <ul style="margin:8px 0 0 18px;padding:0;font-size:12px;line-height:1.45;color:var(--text)">
+    {% for w in security_warnings %}
+    <li>{{ w }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
 
 <div id="onboardBanner" class="onboard-banner" style="display:none">
   <div class="onboard-steps">
@@ -318,12 +328,6 @@
   
   <div style="padding:44px 0 36px;position:relative">
     <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);width:500px;height:260px;background:radial-gradient(ellipse,rgba(61,142,255,.1) 0%,transparent 70%);pointer-events:none"></div>
-    <div style="text-align:center;margin-bottom:28px">
-      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(61,142,255,.08);border:1px solid rgba(61,142,255,.2);border-radius:20px;padding:5px 14px;font-size:10px;font-family:var(--head);font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue)">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        WordPress Security Auditor
-      </div>
-    </div>
     <div style="display:flex;align-items:center;justify-content:center;gap:36px;flex-wrap:wrap;margin-bottom:22px">
       <img src="/static/logo.png" alt="WP VulnScanner" class="hero-logo"
            style="width:auto;height:200px;max-width:300px;object-fit:contain;filter:drop-shadow(0 0 32px rgba(61,142,255,.55)) drop-shadow(0 8px 24px rgba(0,0,0,.5));flex-shrink:0;animation:logo-pulse 4s ease-in-out infinite">
@@ -344,6 +348,9 @@
       <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-family:var(--mono);color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:4px 10px"><span style="color:var(--green)">✓</span> 333+ plugins</span>
       <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-family:var(--mono);color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:4px 10px"><span style="color:var(--green)">✓</span> GDPR / PCI-DSS</span>
       <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-family:var(--mono);color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:4px 10px"><span style="color:var(--green)">✓</span> Sin instalar plugins</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-family:var(--mono);color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:4px 10px"><span style="color:var(--green)">✓</span> TLS / SSL analysis</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-family:var(--mono);color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:4px 10px"><span style="color:var(--green)">✓</span> AI remediation</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-family:var(--mono);color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:4px 10px"><span style="color:var(--green)">✓</span> Webhook alerts</span>
     </div>
   </div>
 
@@ -351,7 +358,6 @@
   <div class="scan-card scan-card-main">
     <div class="url-row">
       <div class="url-input-wrap" id="urlWrap">
-        <svg class="scan-url-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
         <input type="text" id="urlInput"
                placeholder="Pega aquí el dominio o la URL completa, por ejemplo https://mi-wordpress.com"
                autocomplete="off" spellcheck="false">
@@ -382,7 +388,6 @@
 
     <div class="db-status-row">
       <div class="db-chip" id="dbStatusChip" title="Estado de la base de datos de vulnerabilidades">
-        <span class="db-chip-dot" id="dbStatusDot"></span>
         <span id="dbStatusText">BD local — cargando...</span>
       </div>
       <button class="db-update-btn" onclick="triggerDbUpdate()" id="dbUpdateBtn" title="Actualizar base de datos ahora">&#x21BB; Actualizar BD</button>
@@ -392,28 +397,15 @@
     <div class="legal-box" id="legalBox">
       <input type="checkbox" class="legal-check" id="legalCheck" onchange="onLegalChange(this)">
       <div class="legal-text">
-        <span class="legal-title" id="legalTitle">⚖️ Autorización requerida — Lee esto antes de escanear</span>
-        <div class="legal-warning">
-          <strong>🔴 ADVERTENCIA CRÍTICA:</strong><br>
-          Declarar falsamente autorización puede constituir un delito con consecuencias graves:
-          <ul style="margin: 8px 0 0 20px; font-size: 11px;">
-            <li><strong>España:</strong> Art. 264 CP — hasta 2 años de cárcel + multas</li>
-            <li><strong>UE/GDPR:</strong> hasta €20M o 4% de ingresos anuales</li>
-            <li><strong>Responsabilidad civil:</strong> sin límite de daños</li>
-          </ul>
-        </div>
-        <div class="legal-declaration">
-          <strong>DECLARO QUE:</strong>
-          <ul style="margin: 8px 0 0 20px; font-size: 12px;">
-            <li>✓ Soy propietario del sitio web a escanear</li>
-            <li>✓ O tengo <strong>autorización expresa y por escrito</strong> del propietario</li>
-            <li>✓ Entiendo que escanear sin autorización es ilegal</li>
-            <li>✓ Asumo todas las responsabilidades legales</li>
-          </ul>
-        </div>
-        <div style="margin-top: 10px; font-size: 11px; color: var(--text-2); border-top: 1px solid var(--border); padding-top: 8px;">
-          📌 Este escaneo detectará datos personales, credenciales y vulnerabilidades. 
-          Consulta <strong>Cumplimiento</strong> para sanciones según GDPR, PCI-DSS, OWASP, ISO 27001.
+        <span class="legal-title" id="legalTitle">Declaración de autorización requerida</span>
+        Declaro que soy el propietario del sitio analizado, o que tengo
+        <strong>autorización expresa y por escrito</strong>
+        del propietario para realizar esta auditoría. El uso sin autorización puede constituir un
+        delito según el <strong>Art. 264 del Código Penal español</strong>.
+        <div style="margin-top:8px">
+          <button type="button" id="legalInfoBtn" class="btn btn-ghost" style="padding:5px 10px;font-size:11px">
+            Ver sanciones y responsabilidades
+          </button>
         </div>
       </div>
     </div>
@@ -458,13 +450,17 @@
     <div class="history-body" id="historyBody">
       <div class="history-empty" id="histEmpty"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Cargando historial...</div>
     </div>
-    <div id="histLoadMore" style="display:none;border-top:1px solid var(--border);padding:8px 14px;text-align:center;">
-      <button onclick="loadHistoryMore()"
-              style="background:none;border:1px solid var(--border-2);color:var(--text-3);border-radius:var(--radius);padding:5px 18px;font-size:11px;font-family:var(--sans);cursor:pointer;transition:all .15s;"
-              onmouseover="this.style.color='var(--text-2)';this.style.borderColor='var(--border-3)'"
-              onmouseout="this.style.color='var(--text-3)';this.style.borderColor='var(--border-2)'">
-        Cargar más ↓
+    <div id="histLoadMore" class="hist-load-more" style="display:none;">
+      <button id="histLoadMoreBtn" class="hist-load-more-btn">
+        <span class="hist-load-more-text">Cargar más</span>
+        <span class="hist-load-more-icon" aria-hidden="true">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9l4 4 4-4"/>
+            <path d="M10 3v10"/>
+          </svg>
+        </span>
       </button>
+      <div class="hist-load-more-hint">Muestra los siguientes resultados</div>
     </div>
   </div>
 </section>
@@ -718,15 +714,45 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="legalNoticeModal" style="display:none" onclick="if(event.target===this)closeLegalNoticeModal()">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-title">Autorización y posibles sanciones por incumplimiento</div>
+    <div style="max-height:70vh;overflow-y:auto;font-size:13px;line-height:1.55;color:var(--text-2)">
+      <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <strong style="color:var(--red)">🔴 Advertencia legal:</strong> Escanear sin permiso puede ser delito y generar sanciones económicas y civiles.
+      </div>
+      <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <strong>España (Art. 264 CP):</strong> acceso/daño no autorizado a sistemas, con posibles multas y penas de prisión según gravedad.
+      </div>
+      <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <strong>GDPR (UE):</strong> hasta <strong>20M EUR</strong> o <strong>4% de facturación global anual</strong>, lo que sea mayor, ante brechas de datos o falta de controles.
+      </div>
+      <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <strong>PCI-DSS:</strong> multas por incumplimiento, riesgo de pérdida de capacidad de procesar pagos y posibles reclamaciones por fraude.
+      </div>
+      <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <strong>OWASP / ISO 27001:</strong> no siempre son ley directa, pero su incumplimiento puede apoyar reclamaciones por negligencia y pérdida contractual/reputacional.
+      </div>
+      <div style="padding:10px 0">
+        <strong>Qué debes tener antes de escanear:</strong>
+        <ul style="margin:8px 0 0 18px;padding:0">
+          <li>Permiso escrito del propietario del dominio/sistema.</li>
+          <li>Alcance autorizado (URL, subdominios y fechas).</li>
+          <li>Responsable de contacto para incidentes.</li>
+        </ul>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+      <button class="btn btn-ghost" id="legalNoticeCloseBtn" onclick="closeLegalNoticeModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <footer class="site-legal-footer" aria-label="Aviso legal de licencia">
   <div class="site-legal-footer-inner">
     <div class="site-legal-head">
       <div class="site-legal-brand">WP VulnScanner</div>
       <div class="site-legal-badges">
-        <span class="site-legal-badge owner">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.2"></circle><path d="M5 20a7 7 0 0 1 14 0"></path></svg>
-          Autor: Reservado
-        </span>
         <span class="site-legal-badge copyright">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M15.5 9.5a4 4 0 1 0 0 5"></path></svg>
           Copyright reservado

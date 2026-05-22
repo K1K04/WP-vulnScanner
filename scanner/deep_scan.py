@@ -18,9 +18,10 @@ from __future__ import annotations
 
 import logging
 import re
+import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeout
 from typing import Optional
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, quote
 
 import requests
 
@@ -56,6 +57,7 @@ REST_SENSITIVE_ROUTES = [
     ("/wp-json/wp/v2/pages",           "Páginas via REST (posibles privadas expuestas)",     "medium"),
     ("/wp-json/wp/v2/categories",      "Categorías expuestas",                              "info"),
     ("/wp-json/wp/v2/tags",            "Etiquetas expuestas",                               "info"),
+    ("/wp-json/wp/v2/taxonomies",      "Taxonomías expuestas",                              "info"),
     ("/wp-json/wp/v2/comments",        "Comentarios + emails de autores expuestos",         "medium"),
                                         
     ("/wp-json/wp/v2/settings",        "Ajustes del sitio sin autenticación",               "critical"),
@@ -72,6 +74,9 @@ REST_SENSITIVE_ROUTES = [
     ("/wp-json/wp/v2/users/1/application-passwords", "Application passwords del admin",     "critical"),
             
     ("/wp-json/wp/v2/search?search=a", "Búsqueda REST (fingerprinting de contenido)",       "low"),
+    ("/wp-json/oembed/1.0/embed?url={BASE_URL}", "oEmbed expone author_name/URL",            "low"),
+    ("/wp-json/acf/v3/options",        "ACF options expuestos",                             "medium"),
+    ("/wp-json/acf/v3/posts",          "ACF posts expuestos",                               "medium"),
                       
     ("/wp-json/wc/v3/products",        "WooCommerce: productos sin auth",                   "medium"),
     ("/wp-json/wc/v3/orders",          "WooCommerce: pedidos sin auth (crítico)",            "critical"),
@@ -131,6 +136,8 @@ def probe_rest_api_routes(
                                            
     def _probe(route_info):
         path, desc, sev = route_info
+        if "{BASE_URL}" in path:
+            path = path.replace("{BASE_URL}", quote(base_url, safe=""))
         url = urljoin(base_url, path)
         r   = _get(session, url, timeout=timeout)
         if not r or r.status_code not in (200, 201):
@@ -1172,6 +1179,71 @@ def scan_uploads_dangerous_files(
     return result
 
 
+def analyze_sitemap(session: requests.Session, base_url: str, timeout: int = 8) -> dict:
+    result: dict = {
+        "found": False,
+        "sources": [],
+        "url_count": 0,
+        "sample_urls": [],
+        "sensitive_urls": [],
+        "hosts": [],
+        "has_index": False,
+    }
+    endpoints = ["/wp-sitemap.xml", "/sitemap.xml", "/sitemap_index.xml"]
+
+    def _extract_locs(xml_text: str) -> list[str]:
+        try:
+            root = ET.fromstring(xml_text)
+        except Exception:
+            return []
+        locs = []
+        for elem in root.iter():
+            if elem.tag.lower().endswith("loc") and elem.text:
+                locs.append(elem.text.strip())
+        return locs
+
+    def _is_sensitive(url: str) -> bool:
+        low = url.lower()
+        if any(k in low for k in [
+            "/wp-admin", "/wp-login", "staging", "dev", "backup", "debug", "test=", "?test=",
+            ".sql", ".zip", ".bak", ".old", ".env", "phpinfo", "/admin",
+        ]):
+            return True
+        return False
+
+    all_urls: list[str] = []
+    for path in endpoints:
+        url = urljoin(base_url, path)
+        try:
+            r = _get(session, url, timeout=timeout)
+            if not r or r.status_code != 200 or len(r.text) < 20:
+                continue
+            result["found"] = True
+            result["sources"].append(url)
+            if "sitemapindex" in r.text.lower():
+                result["has_index"] = True
+            locs = _extract_locs(r.text)
+            if locs:
+                all_urls.extend(locs)
+        except Exception as e:
+            result["error"] = str(e)
+
+    uniq = list(dict.fromkeys([u for u in all_urls if u]))
+    result["url_count"] = len(uniq)
+    result["sample_urls"] = uniq[:40]
+    result["sensitive_urls"] = [u for u in uniq if _is_sensitive(u)][:30]
+    hosts = []
+    for u in uniq:
+        try:
+            host = urlparse(u).hostname
+            if host and host not in hosts:
+                hosts.append(host)
+        except Exception:
+            pass
+    result["hosts"] = hosts[:20]
+    return result
+
+
                                                                                
                                                             
                                                                                
@@ -1248,6 +1320,7 @@ def _run_deep_scan_impl(
         "app_passwords": lambda: check_application_passwords(session, base_url, timeout),
         "staging":       lambda: detect_staging_environment(session, base_url, html, headers, timeout),
         "uploads":       lambda: scan_uploads_dangerous_files(session, base_url, timeout),
+        "sitemap":       lambda: analyze_sitemap(session, base_url, timeout),
     }
 
     cb("Deep scan paralelo iniciado...", 5)
