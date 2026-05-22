@@ -1,4 +1,4 @@
-# 🛡️ WP VulnScanner
+#  WP-VulnScanner
 
 > Escáner de seguridad profesional para WordPress — detección pasiva de vulnerabilidades, CVEs, plugins, temas y mucho más.
 
@@ -36,7 +36,7 @@
 
 ---
 
-## 🐳 Uso rápido con Docker
+##  Uso rápido con Docker
 
 La forma más sencilla de arrancar WP VulnScanner es con Docker, sin necesidad de instalar dependencias.
 
