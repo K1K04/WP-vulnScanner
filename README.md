@@ -148,16 +148,8 @@ DEBUG=false
 
 ##  Capturas
 
-```
-┌─────────────────────────────────────────┐
-│  WP VulnScanner                         │
-│                                         │
-│  https://ejemplo.com        [ESCANEAR]  │
-│                                         │
-│  ✓ CISA KEV  ✓ EPSS  ✓ 1.284 CVEs      │
-│  ✓ GDPR/PCI  ✓ TLS   ✓ AI Remediation  │
-└─────────────────────────────────────────┘
-```
+
+![Dashboard](docs/screenshots/dashboard.png)
 
 ---
 
