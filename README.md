@@ -146,7 +146,7 @@ DEBUG=false
 
 ---
 
-##  Capturas
+##  Capturas de pantalla
 
 
 ![Dashboard](docs/screenshots/dashboard.png)
